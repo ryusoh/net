@@ -193,13 +193,25 @@
   };
 
   /**
+   * Checks if the extension context is still valid.
+   * @returns {boolean}
+   */
+  function isContextValid() {
+    return !!(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id);
+  }
+
+  /**
    * Main execution loop.
    */
   function run() {
+    if (!isContextValid()) {
+      return;
+    }
     if (!document.body) {
       return;
     }
     chrome.storage.sync.get(['enabled', 'mode', 'whitelist', 'blacklist'], (prefs) => {
+      if (!isContextValid()) return;
       if (prefs.enabled === false) {
         return;
       }
@@ -258,6 +270,10 @@
 
   // Observe for dynamic changes
   const observer = new MutationObserver((mutations) => {
+    if (!isContextValid()) {
+      observer.disconnect();
+      return;
+    }
     let shouldRun = false;
     mutations.forEach((m) => {
       if (m.addedNodes.length > 0) {
@@ -275,12 +291,15 @@
   });
 
   // Message listener
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'scan') {
-      log('Manual scan triggered');
-      run();
-      sendResponse({ success: true });
-    }
-    return true;
-  });
+  if (isContextValid()) {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (!isContextValid()) return;
+      if (request.action === 'scan') {
+        log('Manual scan triggered');
+        run();
+        sendResponse({ success: true });
+      }
+      return true;
+    });
+  }
 })();
