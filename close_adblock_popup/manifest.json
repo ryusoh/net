@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Auto-Close AdBlock Popups",
+  "version": "1.0",
+  "description": "Automatically detects and closes annoying update/installed popups from getadblock.com.",
+  "permissions": ["tabs"],
+  "host_permissions": ["*://*.getadblock.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "128": "icon.png"
+  }
+}
