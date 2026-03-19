@@ -33,6 +33,14 @@
         height: 0 !important;
         pointer-events: none !important;
       }
+
+      /* Hide floating Grok and Messages buttons in bottom right */
+      #layers > div > div:nth-child(1) > div > div > div > div > button,
+      #layers > div > div:nth-child(2) > div > div > div > div > div.absolute.inset-0.w-full.h-full.select-none.flex.items-center.justify-center.cursor-pointer,
+      div[data-testid="msg-drawer"] {
+        display: none !important;
+        visibility: hidden !important;
+      }
     `;
     const target = document.head || document.documentElement;
     if (target) {
