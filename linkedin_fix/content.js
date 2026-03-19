@@ -10,7 +10,9 @@
   'use strict';
 
   function cleanLinkedInText(text) {
-    if (!text) {return '';}
+    if (!text) {
+      return '';
+    }
     return text
       .replace(/<!---->/g, '')
       .replace(/·/g, '')
@@ -86,7 +88,9 @@
     const card = e.target.closest(
       '#browsemap_recommendation, .browsemap-profile, .pv-browsemap-section__member-container, li.artdeco-list__item'
     );
-    if (!card) {return;}
+    if (!card) {
+      return;
+    }
 
     // Always kill the event first
     e.preventDefault();

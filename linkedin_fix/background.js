@@ -4,7 +4,9 @@
  */
 
 function isPremiumSurvey(url) {
-  if (!url) {return false;}
+  if (!url) {
+    return false;
+  }
   return url.includes('linkedin.com/premium/survey');
 }
 
