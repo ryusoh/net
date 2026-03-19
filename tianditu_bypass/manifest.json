@@ -1,9 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Tianditu Hybrid Accelerator",
-  "version": "1.6",
-  "description": "Fast-path spoofing with automatic multi-source proxy failover.",
-  "permissions": ["proxy", "storage", "alarms", "offscreen", "webRequest", "declarativeNetRequest"],
+  "version": "1.7",
+  "description": "Fast-path spoofing with automatic multi-source proxy failover and session cleaning.",
+  "permissions": [
+    "proxy",
+    "storage",
+    "alarms",
+    "offscreen",
+    "webRequest",
+    "declarativeNetRequest",
+    "cookies",
+    "browsingData"
+  ],
   "host_permissions": [
     "https://freeproxy.world/*",
     "https://*.freeproxy.world/*",
@@ -14,6 +23,9 @@
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Tianditu Accelerator Status"
   },
   "declarative_net_request": {
     "rule_resources": [
