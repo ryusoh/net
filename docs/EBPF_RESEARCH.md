@@ -22,6 +22,39 @@ This document tracks exploratory research into moving network modification and s
 - **Goal:** Calculate exact TTFB (Time to First Byte) at the socket level for proxy nodes.
 - **Benefit:** High-precision telemetry for choosing the fastest exit nodes in the proxy pool.
 
+## Local Development via Docker (macOS/Darwin)
+
+While eBPF doesn't run natively on macOS, you can develop and compile programs using the Linux VM that Docker for Mac runs in the background.
+
+### 1. Build the Development Environment
+
+```bash
+cd kernel_proxy
+docker build -t ebpf-dev .
+```
+
+### 2. Compile eBPF Code
+
+```bash
+# Run the container and mount the source code
+docker run --rm -v $(pwd):/app ebpf-dev make
+```
+
+This will produce `hello.bpf.o`, an ELF file containing the BPF bytecode.
+
+### 3. Verification (Inside Docker)
+
+To actually _run_ the program, you need to grant the container elevated privileges:
+
+```bash
+docker run --rm --privileged -v $(pwd):/app -it ebpf-dev /bin/bash
+# Inside the container:
+# Attach to the loopback interface for testing
+ip link set dev lo xdp obj hello.bpf.o
+# View kernel logs
+cat /sys/kernel/debug/tracing/trace_pipe
+```
+
 ## Infrastructure Setup: Linux VPS (Exit Node)
 
 To host eBPF programs, you need a Linux instance with kernel 5.15+ (Ubuntu 22.04 LTS or newer recommended).
