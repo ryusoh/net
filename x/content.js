@@ -127,6 +127,56 @@
           }
         }
       }
+      // 4. Hide "Subscribe to Premium" in the left sidebar
+      const premiumElements = document.querySelectorAll(
+        'a[aria-label="Premium"], a[href="/i/premium_sign_up"]'
+      );
+      premiumElements.forEach((el) => {
+        el.style.setProperty('display', 'none', 'important');
+      });
+
+      // Fallback: Check for elements with text "Subscribe" or "Premium" in the nav
+      const navItems = document.querySelectorAll('nav[role="navigation"] a');
+      navItems.forEach((item) => {
+        const text = (item.innerText || item.textContent || '').trim().toLowerCase();
+        if (text === 'premium' || text === 'subscribe') {
+          item.style.setProperty('display', 'none', 'important');
+        }
+      });
+
+      // 5. Hide "Subscribe to Premium" box in the right sidebar
+      // Usually it's an aside element with an aria-label
+      const rightSidebarPremium = document.querySelectorAll(
+        'aside[aria-label="Subscribe to Premium"]'
+      );
+      rightSidebarPremium.forEach((el) => {
+        el.style.setProperty('display', 'none', 'important');
+      });
+
+      // Text-based fallback for the right sidebar premium box
+      const spans = document.querySelectorAll('[data-testid="sidebarColumn"] span');
+      spans.forEach((span) => {
+        const text = (span.innerText || span.textContent || '').trim().toLowerCase();
+        if (text === 'subscribe to premium') {
+          // We need to hide the container card, which is usually a few levels up
+          // It's typically an 'aside' or a div with padding and border
+          let container = span.closest('aside');
+          if (!container) {
+            let parent = span.parentElement;
+            // Go up to 8 levels looking for the section container
+            for (let i = 0; i < 8; i++) {
+              if (!parent || parent.getAttribute('data-testid') === 'sidebarColumn') {
+                break;
+              }
+              container = parent;
+              parent = parent.parentElement;
+            }
+          }
+          if (container) {
+            container.style.setProperty('display', 'none', 'important');
+          }
+        }
+      });
     }, 50);
   }
 })();
