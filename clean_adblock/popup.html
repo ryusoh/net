@@ -1,103 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body {
-      width: 300px;
-      font-family: sans-serif;
-      padding: 10px;
-      background: #f4f4f4;
-    }
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 15px;
-    }
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 20px;
-    }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 20px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 16px; width: 16px;
-      left: 2px; bottom: 2px;
-      background-color: white;
-      transition: .4s;
-      border-radius: 50%;
-    }
-    input:checked + .slider { background-color: #4CAF50; }
-    input:checked + .slider:before { transform: translateX(20px); }
-    
-    .section {
-      background: white;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .title { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
-    .desc { font-size: 12px; color: #666; margin-bottom: 10px; }
-    button {
-      width: 100%;
-      padding: 8px;
-      border: none;
-      border-radius: 4px;
-      background: #2196F3;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover { background: #1976D2; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <span class="title">Bypass: AdBlock</span>
-    <label class="switch">
-      <input type="checkbox" id="enabled">
-      <span class="slider"></span>
-    </label>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        width: 300px;
+        font-family: sans-serif;
+        padding: 10px;
+        background: #f4f4f4;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 20px;
+      }
+      .slider:before {
+        position: absolute;
+        content: '';
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: #4caf50;
+      }
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
 
-  <div class="section">
-    <div class="title">Execution Mode</div>
-    <select id="mode" style="width: 100%; padding: 5px; margin-bottom: 10px;">
-      <option value="all">Run on all sites</option>
-      <option value="selective">Run only on selected sites (Blacklist)</option>
-    </select>
-  </div>
-
-  <div class="section">
-    <div class="title">Site Lists</div>
-    <div class="desc">Toggle current site status:</div>
-    <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-      <button id="addWhitelist" style="background: #4CAF50; font-size: 11px;">Whitelist</button>
-      <button id="addBlacklist" style="background: #2196F3; font-size: 11px;">Blacklist</button>
-      <button id="addJsBlock" style="background: #FF9800; font-size: 11px;">Block JS</button>
+      .section {
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .title {
+        font-weight: bold;
+        font-size: 14px;
+        margin-bottom: 5px;
+      }
+      .desc {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 10px;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        border: none;
+        border-radius: 4px;
+        background: #2196f3;
+        color: white;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1976d2;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <span class="title">Bypass: AdBlock</span>
+      <label class="switch">
+        <input type="checkbox" id="enabled" />
+        <span class="slider"></span>
+      </label>
     </div>
-  </div>
 
-  <div class="section">
-    <button id="scan">Scan Current Page</button>
-  </div>
+    <div class="section">
+      <div class="title">Execution Mode</div>
+      <select id="mode" style="width: 100%; padding: 5px; margin-bottom: 10px">
+        <option value="all">Run on all sites</option>
+        <option value="selective">Run only on selected sites (Blacklist)</option>
+      </select>
+    </div>
 
-  <div class="section">
-    <button id="picker">Element Picker</button>
-  </div>
+    <div class="section">
+      <div class="title">Site Lists</div>
+      <div class="desc">Toggle current site status:</div>
+      <div style="display: flex; gap: 5px; margin-bottom: 10px">
+        <button id="addWhitelist" style="background: #4caf50; font-size: 11px">Whitelist</button>
+        <button id="addBlacklist" style="background: #2196f3; font-size: 11px">Blacklist</button>
+        <button id="addJsBlock" style="background: #ff9800; font-size: 11px">Block JS</button>
+      </div>
+    </div>
 
-  <script src="popup.js"></script>
-</body>
+    <div class="section">
+      <button id="scan">Scan Current Page</button>
+    </div>
+
+    <div class="section">
+      <button id="picker">Element Picker</button>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
 </html>

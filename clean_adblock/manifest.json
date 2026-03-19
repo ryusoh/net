@@ -3,15 +3,8 @@
   "name": "__MSG_extensionName__",
   "version": "1.0.0",
   "description": "__MSG_extensionDescription__",
-  "permissions": [
-    "storage",
-    "declarativeNetRequest",
-    "declarativeNetRequestFeedback",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["storage", "declarativeNetRequest", "declarativeNetRequestFeedback", "activeTab"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

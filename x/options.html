@@ -1,32 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>X: Default Tab Settings</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; width: 300px; }
-    h2 { font-size: 16px; margin-top: 0; }
-    .option { margin-bottom: 10px; }
-    label { cursor: pointer; }
-    #status { margin-top: 15px; font-size: 12px; color: green; }
-    button { margin-top: 10px; cursor: pointer; padding: 5px 15px; }
-  </style>
-</head>
-<body>
-  <h2>Which tab should be visible?</h2>
-  <div class="option">
-    <input type="radio" id="Finance" name="defaultTab" value="Finance" checked>
-    <label for="Finance">Finance (Hide others)</label>
-  </div>
-  <div class="option">
-    <input type="radio" id="Following" name="defaultTab" value="Following">
-    <label for="Following">Following (Hide others)</label>
-  </div>
-  <div class="option">
-    <input type="radio" id="ForYou" name="defaultTab" value="ForYou">
-    <label for="ForYou">For you (Hide others)</label>
-  </div>
-  <button id="save">Save Settings</button>
-  <div id="status"></div>
-  <script src="options.js"></script>
-</body>
+  <head>
+    <title>X: Default Tab Settings</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        width: 300px;
+      }
+      h2 {
+        font-size: 16px;
+        margin-top: 0;
+      }
+      .option {
+        margin-bottom: 10px;
+      }
+      label {
+        cursor: pointer;
+      }
+      #status {
+        margin-top: 15px;
+        font-size: 12px;
+        color: green;
+      }
+      button {
+        margin-top: 10px;
+        cursor: pointer;
+        padding: 5px 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Which tab should be visible?</h2>
+    <div class="option">
+      <input type="radio" id="Finance" name="defaultTab" value="Finance" checked />
+      <label for="Finance">Finance (Hide others)</label>
+    </div>
+    <div class="option">
+      <input type="radio" id="Following" name="defaultTab" value="Following" />
+      <label for="Following">Following (Hide others)</label>
+    </div>
+    <div class="option">
+      <input type="radio" id="ForYou" name="defaultTab" value="ForYou" />
+      <label for="ForYou">For you (Hide others)</label>
+    </div>
+    <button id="save">Save Settings</button>
+    <div id="status"></div>
+    <script src="options.js"></script>
+  </body>
 </html>

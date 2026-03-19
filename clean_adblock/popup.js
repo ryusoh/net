@@ -32,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = new URL(tabs[0].url);
       const host = url.hostname;
-      if (!host) return;
+      if (!host) {
+        return;
+      }
 
       chrome.storage.sync.get(['whitelist', 'blacklist', 'jsBlocked'], (result) => {
         const isWhitelisted = (result.whitelist || []).includes(host);
@@ -50,12 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = new URL(tabs[0].url);
       const host = url.hostname;
-      if (!host) return;
+      if (!host) {
+        return;
+      }
 
       chrome.storage.sync.get([listKey], (result) => {
-        let list = result[listKey] || [];
+        const list = result[listKey] || [];
         const index = list.indexOf(host);
-        
+
         if (index > -1) {
           // Remove if exists
           list.splice(index, 1);
@@ -83,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Trigger manual scan
   scanBtn.addEventListener('click', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { action: 'scan' }, (response) => {
+      chrome.tabs.sendMessage(tabs[0].id, { action: 'scan' }, () => {
         if (chrome.runtime.lastError) {
           alert('Error: Could not communicate with page. Please refresh.');
         } else {

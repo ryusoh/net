@@ -1,81 +1,95 @@
-/**
- * Bypass: AdBlock Detector - Background Service
- */
-
-/**
- * Updates declarativeNetRequest rules to block JavaScript on specific sites.
- * @param {string[]} hostnames - List of hostnames to block JS on.
- */
-async function updateBlockingRules(hostnames) {
-  // 1. Get existing dynamic rules
-  const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-  const ruleIdsToRemove = existingRules.map(r => r.id);
-
-  // 2. Prepare new rules
-  const newRules = [];
-  let ruleId = 1;
-
-  hostnames.forEach(host => {
-    // Block script resources
-    newRules.push({
-      id: ruleId++,
-      priority: 1,
-      action: { type: 'block' },
-      condition: {
-        urlFilter: `||${host}/*`,
-        resourceTypes: ['script']
+const updateBadge = () => {
+  if (typeof chrome !== 'undefined' && chrome.action && chrome.storage) {
+    chrome.storage.sync.get({ enabled: true, mode: 'all' }, (prefs) => {
+      const isEnabled = prefs.enabled !== false;
+      const mode = prefs.mode || 'all';
+      if (!isEnabled) {
+        chrome.action.setBadgeText({ text: 'OFF' });
+        chrome.action.setBadgeBackgroundColor({ color: '#F44336' });
+      } else {
+        chrome.action.setBadgeText({ text: mode === 'all' ? 'ON' : 'SEL' });
+        chrome.action.setBadgeBackgroundColor({
+          color: mode === 'all' ? '#4CAF50' : '#2196F3'
+        });
       }
     });
+  }
+};
 
-    // Modify CSP headers to block inline scripts
-    newRules.push({
-      id: ruleId++,
-      priority: 1,
-      action: {
-        type: 'modifyHeaders',
-        responseHeaders: [
-          {
-            header: 'content-security-policy',
-            operation: 'set',
-            value: "script-src 'none'; object-src 'none';"
-          }
-        ]
-      },
-      condition: {
-        urlFilter: `||${host}/*`,
-        resourceTypes: ['main_frame', 'sub_frame']
-      }
-    });
-  });
+let isUpdatingRules = false;
+const updateBlockingRules = async (hostnames) => {
+  if (isUpdatingRules) {
+    return;
+  }
+  isUpdatingRules = true;
+  try {
+    const uniqueHosts = Array.from(new Set(hostnames || [])).filter((h) => h && h.trim());
+    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const removeRuleIds = existingRules.map((r) => r.id);
+    const addRules = [];
 
-  // 3. Apply changes
-  await chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: ruleIdsToRemove,
-    addRules: newRules
-  });
-}
+    if (uniqueHosts.length > 0) {
+      uniqueHosts.forEach((host, i) => {
+        const baseId = i * 2 + 1;
+        addRules.push({
+          id: baseId,
+          priority: 1,
+          action: { type: 'block' },
+          condition: { urlFilter: `||${host}/*`, resourceTypes: ['script'] }
+        });
+        addRules.push({
+          id: baseId + 1,
+          priority: 1,
+          action: {
+            type: 'modifyHeaders',
+            responseHeaders: [
+              {
+                header: 'content-security-policy',
+                operation: 'set',
+                value: "script-src 'none'; object-src 'none';"
+              }
+            ]
+          },
+          condition: { urlFilter: `||${host}/*`, resourceTypes: ['main_frame', 'sub_frame'] }
+        });
+      });
+    }
+
+    await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds, addRules });
+  } catch (e) {
+    console.error('DNR Update Error:', e);
+  } finally {
+    isUpdatingRules = false;
+  }
+};
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    const defaultBlocked = ['bild.de'];
     chrome.storage.sync.set({
       enabled: true,
       mode: 'all',
       whitelist: [],
       blacklist: [],
-      jsBlocked: defaultBlocked
+      jsBlocked: ['bild.de']
     });
-    updateBlockingRules(defaultBlocked);
   }
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && (changes.enabled || changes.mode)) {
-    updateBadge();
-  }
-  if (area === 'sync' && changes.jsBlocked) {
-    updateBlockingRules(changes.jsBlocked.newValue || []);
+  if (area === 'sync') {
+    if (changes.enabled || changes.mode) {
+      updateBadge();
+    }
+    if (changes.jsBlocked) {
+      updateBlockingRules(changes.jsBlocked.newValue || []);
+    }
   }
 });
 
-updateBadge();
+// Initialize on startup
+chrome.storage.sync.get(['enabled', 'mode', 'jsBlocked'], (prefs) => {
+  updateBadge();
+  if (prefs.jsBlocked) {
+    updateBlockingRules(prefs.jsBlocked);
+  }
+});

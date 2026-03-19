@@ -2,8 +2,10 @@
  * Bypass: AdBlock Detector - Element Picker
  */
 
-(function() {
-  if (window.__bypassPickerActive) return;
+(function () {
+  if (window.__bypassPickerActive) {
+    return;
+  }
   window.__bypassPickerActive = true;
 
   const overlay = document.createElement('div');
@@ -30,11 +32,13 @@
 
   function handleMouseMove(e) {
     const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (!el || el === overlay || el === highlight) return;
+    if (!el || el === overlay || el === highlight) {
+      return;
+    }
 
     const rect = el.getBoundingClientRect();
-    highlight.style.top = (rect.top + window.scrollY) + 'px';
-    highlight.style.left = (rect.left + window.scrollX) + 'px';
+    highlight.style.top = rect.top + window.scrollY + 'px';
+    highlight.style.left = rect.left + window.scrollX + 'px';
     highlight.style.width = rect.width + 'px';
     highlight.style.height = rect.height + 'px';
   }
@@ -44,7 +48,9 @@
     e.stopPropagation();
 
     const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (!el || el === overlay || el === highlight) return;
+    if (!el || el === overlay || el === highlight) {
+      return;
+    }
 
     const selector = generateSelector(el);
     if (confirm(`Hide this element permanently?\nSelector: ${selector}`)) {
@@ -55,14 +61,20 @@
   }
 
   function handleKeydown(e) {
-    if (e.key === 'Escape') cleanup();
+    if (e.key === 'Escape') {
+      cleanup();
+    }
   }
 
   function generateSelector(el) {
-    if (el.id) return `#${CSS.escape(el.id)}`;
+    if (el.id) {
+      return `#${CSS.escape(el.id)}`;
+    }
     if (el.className && typeof el.className === 'string') {
       const cls = el.className.split(/\s+/)[0];
-      if (cls) return `.${CSS.escape(cls)}`;
+      if (cls) {
+        return `.${CSS.escape(cls)}`;
+      }
     }
     return el.tagName.toLowerCase();
   }
@@ -71,7 +83,9 @@
     const host = window.location.hostname;
     chrome.storage.local.get(['customSelectors'], (result) => {
       const selectors = result.customSelectors || {};
-      if (!selectors[host]) selectors[host] = [];
+      if (!selectors[host]) {
+        selectors[host] = [];
+      }
       if (!selectors[host].includes(selector)) {
         selectors[host].push(selector);
         chrome.storage.local.set({ customSelectors: selectors });

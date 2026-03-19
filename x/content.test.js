@@ -29,11 +29,11 @@ describe('X Tab Switcher - Nuclear Option', () => {
       </nav>
     `;
     tabs = document.querySelectorAll('[role="tab"]');
-    
+
     // Mock the click/dispatchEvent
     tabs[2].click = jest.fn();
     tabs[2].dispatchEvent = jest.fn();
-    
+
     jest.clearAllMocks();
     jest.useFakeTimers();
   });
@@ -43,10 +43,12 @@ describe('X Tab Switcher - Nuclear Option', () => {
   });
 
   test('should eventually switch to "Finance" if "Following" is active', () => {
-    chrome.storage.sync.get.mockImplementation((defaults, callback) => callback({ preferredTab: 'Finance' }));
+    chrome.storage.sync.get.mockImplementation((defaults, callback) =>
+      callback({ preferredTab: 'Finance' })
+    );
 
     eval(fs.readFileSync(contentScriptPath, 'utf8'));
-    
+
     // Fast-forward the setInterval
     jest.advanceTimersByTime(100);
 
@@ -54,10 +56,12 @@ describe('X Tab Switcher - Nuclear Option', () => {
   });
 
   test('should permanently hide "For you"', () => {
-    chrome.storage.sync.get.mockImplementation((defaults, callback) => callback({ preferredTab: 'Finance' }));
+    chrome.storage.sync.get.mockImplementation((defaults, callback) =>
+      callback({ preferredTab: 'Finance' })
+    );
 
     eval(fs.readFileSync(contentScriptPath, 'utf8'));
-    
+
     jest.advanceTimersByTime(100);
 
     expect(tabs[0].style.display).toBe('none');

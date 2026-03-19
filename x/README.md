@@ -10,4 +10,5 @@ This Chrome Extension automatically hides the "For you" tab on `x.com` and `twit
 4. Select the `net/x/` folder from your computer.
 
 ## Note on Icons
+
 The `manifest.json` expects an `icon.png` (128x128) in this folder. Since I cannot generate binary image files, please add a 128x128 PNG named `icon.png` to this directory to remove the warning in the extensions list.

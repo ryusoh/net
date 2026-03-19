@@ -14,12 +14,13 @@ A tool to pull the source code of installed Chrome extensions from your local ma
    ```bash
    make pull ID=your_extension_id
    ```
-   *Example:*
+   _Example:_
    ```bash
    make pull ID=bffmkleioghafggghlaeemdgjpmbppii
    ```
 
 ## How it Works
+
 - The script searches the standard Google Chrome extension directories on macOS (`~/Library/Application Support/Google/Chrome/`).
 - It automatically selects the latest version available.
 - It reads the extension's `manifest.json` to determine a human-readable name for the resulting folder.
@@ -27,5 +28,6 @@ A tool to pull the source code of installed Chrome extensions from your local ma
 - The `_metadata` folder (which contains internal Chrome signatures unnecessary for unpacked use) is automatically removed.
 
 ## Prerequisites
+
 - macOS (configured for default Chrome paths).
 - Python 3.
