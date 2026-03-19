@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "Bypass: AdBlock Detector"
+  },
+  "extensionDescription": {
+    "message": "Bypass 'AdBlock detected' popups and restore page functionality."
+  }
+}
