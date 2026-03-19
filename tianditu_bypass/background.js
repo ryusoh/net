@@ -152,8 +152,12 @@ function tryNextProxy() {
 let offscreenLock = null;
 
 async function ensureOffscreenDocument() {
-  if (await chrome.offscreen.hasDocument()) {return;}
-  if (offscreenLock) {return offscreenLock;}
+  if (await chrome.offscreen.hasDocument()) {
+    return;
+  }
+  if (offscreenLock) {
+    return offscreenLock;
+  }
 
   offscreenLock = (async () => {
     try {
@@ -163,7 +167,9 @@ async function ensureOffscreenDocument() {
         justification: 'Fetch and parse proxies'
       });
     } catch (e) {
-      if (!e.message.includes('Only a single offscreen document')) {throw e;}
+      if (!e.message.includes('Only a single offscreen document')) {
+        throw e;
+      }
     }
   })();
 
@@ -178,9 +184,13 @@ async function sendMessageToOffscreen(message, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await chrome.runtime.sendMessage(message);
-      if (response) {return response;}
+      if (response) {
+        return response;
+      }
     } catch (e) {
-      if (i === maxRetries - 1) {throw e;}
+      if (i === maxRetries - 1) {
+        throw e;
+      }
       await new Promise((r) => setTimeout(r, 200));
     }
   }
@@ -191,7 +201,9 @@ async function fetchFromSource(source) {
     const start = Date.now();
     await ensureOffscreenDocument();
     const fetchResult = await sendMessageToOffscreen({ type: 'FETCH_HTML', url: source.url });
-    if (!fetchResult || fetchResult.error) {return [];}
+    if (!fetchResult || fetchResult.error) {
+      return [];
+    }
 
     const html = fetchResult.html;
     const fetchTime = Date.now() - start;
@@ -236,7 +248,9 @@ async function refreshProxy() {
 
 chrome.alarms.create('refreshProxy', { periodInMinutes: ROTATION_INTERVAL_MINS });
 chrome.alarms.onAlarm.addListener((a) => {
-  if (a.name === 'refreshProxy') {refreshProxy();}
+  if (a.name === 'refreshProxy') {
+    refreshProxy();
+  }
 });
 chrome.runtime.onInstalled.addListener(refreshProxy);
 chrome.runtime.onStartup.addListener(refreshProxy);

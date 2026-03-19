@@ -82,6 +82,7 @@ describe('X Tab Switcher - Nuclear Option', () => {
           </div>
         </div>
       </div>
+      <div data-testid="tweetTextarea_0_label"><span>What's happening?</span></div>
     `;
     tabs = document.querySelectorAll('[role="tab"]');
     premiumLinks = document.querySelectorAll('nav[role="navigation"] a');
@@ -185,5 +186,18 @@ describe('X Tab Switcher - Nuclear Option', () => {
     expect(isHidden(grokBtn)).toBe(true);
     expect(isHidden(msgDrawer)).toBe(true);
     expect(isHidden(grokHeader)).toBe(true);
+  });
+
+  test('should hide "What\'s happening?" placeholder via opacity', () => {
+    chrome.storage.sync.get.mockImplementation((defaults, callback) =>
+      callback({ preferredTab: 'Finance' })
+    );
+
+    eval(fs.readFileSync(contentScriptPath, 'utf8'));
+
+    jest.advanceTimersByTime(100);
+
+    const placeholder = document.querySelector('[data-testid="tweetTextarea_0_label"]');
+    expect(placeholder.style.opacity).toBe('0');
   });
 });

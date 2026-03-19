@@ -41,6 +41,13 @@
         display: none !important;
         visibility: hidden !important;
       }
+
+      /* Minimalist: Hide "What's happening?" placeholder */
+      div[data-testid="tweetTextarea_0_label"],
+      div[data-testid="tweetTextarea_1_label"] {
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
     `;
     const target = document.head || document.documentElement;
     if (target) {
@@ -199,6 +206,15 @@
             }
           }
         }
+      });
+
+      // 4. Hide "What's happening?" placeholder
+      const placeholders = document.querySelectorAll(
+        'div[data-testid="tweetTextarea_0_label"], div[data-testid="tweetTextarea_1_label"]'
+      );
+      placeholders.forEach((el) => {
+        el.style.setProperty('opacity', '0', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important');
       });
 
       // --- TAB SWITCHER (Run only on home) ---
