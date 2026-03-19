@@ -42,10 +42,15 @@ describe('X Tab Switcher - Nuclear Option', () => {
           <h2><span>Who to follow</span></h2>
           <div>Suggested accounts...</div>
         </aside>
-        <aside aria-label="Live on X">
-          <h2><span>Live on X</span></h2>
-          <div>Live video content...</div>
-        </aside>
+        <div class="user-live-on-x-wrapper">
+          <h2 aria-level="2" role="heading">
+            <div></div>
+            <div dir="ltr">
+              <span>Live on X</span>
+            </div>
+            <div></div>
+          </h2>
+        </div>
       </div>
       <div id="layers">
         <div>
@@ -145,7 +150,7 @@ describe('X Tab Switcher - Nuclear Option', () => {
     jest.advanceTimersByTime(100);
 
     const whoToFollow = document.querySelector('aside[aria-label="Who to follow"]');
-    const liveOnX = document.querySelector('aside[aria-label="Live on X"]');
+    const liveOnX = document.querySelector('.user-live-on-x-wrapper');
     expect(rightSidebarPremium.style.display).toBe('none');
     expect(whoToFollow.style.display).toBe('none');
     expect(liveOnX.style.display).toBe('none');

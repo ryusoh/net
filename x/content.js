@@ -86,21 +86,18 @@
         'aside[aria-label="Subscribe to Premium"], aside[aria-label="Who to follow"], aside[aria-label="Live on X"]'
       );
       rightSidebarCards.forEach((el) => {
-        // X sometimes wraps the aside in another div that holds the border
-        let container = el;
-        if (el.parentElement && el.parentElement.getAttribute('data-testid') !== 'sidebarColumn') {
-          // If the parent isn't the main sidebar column, it's likely a border wrapper
-          container = el.parentElement;
-          // Check one more level up just in case
-          if (
-            container.parentElement &&
-            container.parentElement.getAttribute('data-testid') !== 'sidebarColumn' &&
-            !container.parentElement.hasAttribute('role')
-          ) {
-            container = container.parentElement;
-          }
+        el.style.setProperty('display', 'none', 'important');
+
+        // Hide immediate parent if it appears to be just a border wrapper for this specific card
+        const parent = el.parentElement;
+        if (
+          parent &&
+          parent.tagName.toLowerCase() === 'div' &&
+          parent.children.length === 1 &&
+          parent.getAttribute('data-testid') !== 'sidebarColumn'
+        ) {
+          parent.style.setProperty('display', 'none', 'important');
         }
-        container.style.setProperty('display', 'none', 'important');
       });
 
       const spans = document.querySelectorAll(
@@ -109,35 +106,49 @@
       spans.forEach((span) => {
         const text = (span.innerText || span.textContent || '').trim().toLowerCase();
         if (text === 'subscribe to premium' || text === 'who to follow' || text === 'live on x') {
-          let container = span.closest('aside');
-          if (container) {
-            // Same wrapper climbing logic
+          const aside = span.closest('aside');
+          if (aside) {
+            aside.style.setProperty('display', 'none', 'important');
+            const parent = aside.parentElement;
             if (
-              container.parentElement &&
-              container.parentElement.getAttribute('data-testid') !== 'sidebarColumn'
+              parent &&
+              parent.tagName.toLowerCase() === 'div' &&
+              parent.children.length === 1 &&
+              parent.getAttribute('data-testid') !== 'sidebarColumn'
             ) {
-              container = container.parentElement;
-              if (
-                container.parentElement &&
-                container.parentElement.getAttribute('data-testid') !== 'sidebarColumn' &&
-                !container.parentElement.hasAttribute('role')
-              ) {
-                container = container.parentElement;
-              }
+              parent.style.setProperty('display', 'none', 'important');
             }
           } else {
-            let parent = span.parentElement;
-            for (let i = 0; i < 10; i++) {
-              // Increased traversal depth slightly
-              if (!parent || parent.getAttribute('data-testid') === 'sidebarColumn') {
-                break;
+            // Robust fallback for cards without aside tags (like some Live on X implementations)
+            // We look for common card wrappers used by X
+            let container =
+              span.closest('div[data-testid="cellInnerDiv"]') ||
+              span.closest('section') ||
+              span.closest('div[data-testid="placementTracking"]');
+
+            if (!container) {
+              // If no specific data-testid found, climb up to the first div that looks like a section header wrapper
+              // The user provided structure: span -> div -> h2 -> div (the card header)
+              const h2 = span.closest('h2');
+              if (h2 && h2.parentElement) {
+                container = h2.parentElement;
+                // If this div is just the header, try to find if it's part of a larger identifiable group
+                // but stop before hitting the main sidebar column
+                if (
+                  container.parentElement &&
+                  container.parentElement.getAttribute('data-testid') !== 'sidebarColumn'
+                ) {
+                  // If the parent is almost the same size and has few children, it might be the card
+                  if (container.parentElement.children.length < 3) {
+                    container = container.parentElement;
+                  }
+                }
               }
-              container = parent;
-              parent = parent.parentElement;
             }
-          }
-          if (container) {
-            container.style.setProperty('display', 'none', 'important');
+
+            if (container && container.getAttribute('data-testid') !== 'sidebarColumn') {
+              container.style.setProperty('display', 'none', 'important');
+            }
           }
         }
       });
