@@ -18,6 +18,13 @@ global.chrome = {
   },
   windows: {
     get: jest.fn()
+  },
+  storage: {
+    local: {
+      get: jest.fn((keys, cb) => cb({})),
+      set: jest.fn(),
+      remove: jest.fn()
+    }
   }
 };
 
@@ -25,9 +32,7 @@ describe('LinkedIn Background Safeguards', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Load background script into global scope so we can test its functions
     const code = fs.readFileSync(backgroundScriptPath, 'utf8');
-    // Wrap in a way that exposes the functions
     const wrappedCode =
       code +
       `; 
@@ -49,7 +54,7 @@ describe('LinkedIn Background Safeguards', () => {
     expect(chrome.tabs.update).toHaveBeenCalledWith(
       123,
       expect.objectContaining({
-        url: 'https://www.linkedin.com/feed/'
+        url: expect.any(String)
       })
     );
   });

@@ -1,18 +1,16 @@
 /**
  * LinkedIn: Direct Profile Access - Content Script
  * -------------------------------------------
- * Intercepts clicks on recommendation links.
- * If a valid profile URL is found, it navigates directly.
- * If the link is "poisoned", it falls back to a name-based search.
+ * 1. Proactively cleans poisoned links via MutationObserver.
+ * 2. Intercepts clicks as a second layer of defense.
+ * 3. Stores the intended destination for background-level failover.
  */
 
 (function () {
   'use strict';
 
   function cleanLinkedInText(text) {
-    if (!text) {
-      return '';
-    }
+    if (!text) {return '';}
     return text
       .replace(/<!---->/g, '')
       .replace(/·/g, '')
@@ -21,53 +19,16 @@
       .trim();
   }
 
-  function handleIntercept(e) {
-    // Kill the event immediately at the capture phase.
-    // This is the primary defense to prevent LinkedIn's scripts from triggering the upsell.
-    const isRecommendation =
-      e.target.closest('#browsemap_recommendation') ||
-      e.target.closest('.pv-profile-card__anchor') ||
-      e.target.closest('.browsemap-profile') ||
-      e.target.closest('.pv-browsemap-section__member-container') ||
-      e.target.closest('li.artdeco-list__item') ||
-      e.target.closest('.artdeco-list__item');
-
-    if (!isRecommendation) {
-      return;
-    }
-
-    // Total Event Annihilation
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    // 1. STRATEGY A: Direct URL Capture
-    // Check if the clicked element or any parent is an <a> tag with a valid profile link
-    const linkEl = e.target.closest('a');
-    if (
-      linkEl &&
-      linkEl.href &&
-      linkEl.href.includes('/in/') &&
-      !linkEl.href.includes('premium/')
-    ) {
-      console.log('[LinkedIn Fix] Caught direct profile link:', linkEl.href);
-      window.location.assign(linkEl.href);
-      return;
-    }
-
-    // 2. STRATEGY B: Search-Bypass Fallback
-    // If we didn't find a direct link, or the link was already poisoned, use the text-scraping logic.
-    const card = isRecommendation; // card container found in step 1
-
+  /**
+   * Identifies a person in a card and constructs their search URL.
+   */
+  function getDestinationForCard(card) {
     const nameSelectors = [
       'span[aria-hidden="true"]',
       '.name',
       '.actor-name',
-      '.pv-browsemap-section__member-name',
-      '[data-field="name"]',
-      '.artdeco-entity-lockup__title'
+      '.pv-browsemap-section__member-name'
     ];
-
     let name = '';
     let headline = '';
 
@@ -82,10 +43,10 @@
       }
     }
 
-    const allTextElements = Array.from(
+    const allText = Array.from(
       card.querySelectorAll('span[aria-hidden="true"], .headline, .inline-show-more-text')
     );
-    for (const el of allTextElements) {
+    for (const el of allText) {
       const cleaned = cleanLinkedInText(el.innerText || el.textContent);
       if (cleaned.length > 1 && cleaned !== name) {
         headline = cleaned;
@@ -95,16 +56,61 @@
 
     if (name) {
       const query = encodeURIComponent(`${name} ${headline}`.trim());
-      const searchUrl = `https://www.linkedin.com/search/results/people/?keywords=${query}`;
-      console.log(`[LinkedIn Fix] Bypassing poisoned link for: ${name}. Searching...`);
-      window.location.assign(searchUrl);
+      return `https://www.linkedin.com/search/results/people/?keywords=${query}`;
+    }
+    return null;
+  }
+
+  /**
+   * Physically rewrites poisoned links in the DOM to be safe.
+   */
+  function proactivelyCleanLinks() {
+    const cards = document.querySelectorAll(
+      '#browsemap_recommendation, .browsemap-profile, .pv-browsemap-section__member-container, li.artdeco-list__item'
+    );
+    cards.forEach((card) => {
+      const links = card.querySelectorAll('a[href*="premium/"]');
+      if (links.length > 0) {
+        const safeUrl = getDestinationForCard(card);
+        if (safeUrl) {
+          links.forEach((link) => {
+            link.href = safeUrl;
+            link.setAttribute('data-cleaned', 'true');
+          });
+        }
+      }
+    });
+  }
+
+  function handleIntercept(e) {
+    const card = e.target.closest(
+      '#browsemap_recommendation, .browsemap-profile, .pv-browsemap-section__member-container, li.artdeco-list__item'
+    );
+    if (!card) {return;}
+
+    // Always kill the event first
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    const destUrl = getDestinationForCard(card);
+    if (destUrl) {
+      console.log('[LinkedIn Fix] Redirecting to safe destination:', destUrl);
+      // Store intended destination for background script failover
+      chrome.storage.local.set({ lastPendingProfile: destUrl });
+      window.location.assign(destUrl);
     }
   }
 
-  // Expanded event shield to catch all possible interaction vectors
-  ['mousedown', 'click', 'pointerdown', 'mouseup', 'auxclick'].forEach((eventType) => {
-    document.addEventListener(eventType, handleIntercept, true);
+  // Layer 1: Proactive Cleaning (DOM-level rewrite)
+  const observer = new MutationObserver(proactivelyCleanLinks);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  proactivelyCleanLinks();
+
+  // Layer 2: Click Shield (Event-level interception)
+  ['mousedown', 'click', 'pointerdown', 'touchstart'].forEach((type) => {
+    document.addEventListener(type, handleIntercept, true);
   });
 
-  console.log('[LinkedIn Fix] Aggressive Triple-Shield active.');
+  console.log('[LinkedIn Fix] Dual-Layer Shield (Observer + Shield) Active.');
 })();
