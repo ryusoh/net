@@ -16,6 +16,9 @@
     "prettier": "^3.2.5"
   },
   "jest": {
-    "testEnvironment": "jsdom"
+    "testEnvironment": "jsdom",
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ]
   }
 }
