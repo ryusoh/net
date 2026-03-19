@@ -35,11 +35,24 @@ export default {
     // Reconstruct the request
     const newRequest = new Request(targetUrlStr, request);
 
+    // Strip Cloudflare trace headers that might trigger the WAF
+    newRequest.headers.delete('cf-connecting-ip');
+    newRequest.headers.delete('cf-ipcountry');
+    newRequest.headers.delete('cf-ray');
+    newRequest.headers.delete('cf-visitor');
+
     // Inject spoofed IP headers to maximize WAF bypass chance at the Cloudflare edge
     newRequest.headers.set('X-Forwarded-For', '114.114.114.114');
     newRequest.headers.set('X-Real-IP', '114.114.114.114');
     newRequest.headers.set('Client-IP', '114.114.114.114');
     newRequest.headers.set('True-Client-IP', '114.114.114.114');
+
+    // Add a standard User-Agent and Referer just in case the WAF requires it
+    newRequest.headers.set(
+      'User-Agent',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    );
+    newRequest.headers.set('Referer', 'https://map.tianditu.gov.cn/');
 
     try {
       const response = await fetch(newRequest);
