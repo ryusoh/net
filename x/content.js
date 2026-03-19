@@ -81,22 +81,54 @@
         }
       });
 
-      // 2. Hide "Subscribe to Premium" box in the right sidebar
-      const rightSidebarPremium = document.querySelectorAll(
-        'aside[aria-label="Subscribe to Premium"]'
+      // 2. Hide "Subscribe to Premium", "Who to follow", and "Live on X" boxes in the right sidebar
+      const rightSidebarCards = document.querySelectorAll(
+        'aside[aria-label="Subscribe to Premium"], aside[aria-label="Who to follow"], aside[aria-label="Live on X"]'
       );
-      rightSidebarPremium.forEach((el) => {
-        el.style.setProperty('display', 'none', 'important');
+      rightSidebarCards.forEach((el) => {
+        // X sometimes wraps the aside in another div that holds the border
+        let container = el;
+        if (el.parentElement && el.parentElement.getAttribute('data-testid') !== 'sidebarColumn') {
+          // If the parent isn't the main sidebar column, it's likely a border wrapper
+          container = el.parentElement;
+          // Check one more level up just in case
+          if (
+            container.parentElement &&
+            container.parentElement.getAttribute('data-testid') !== 'sidebarColumn' &&
+            !container.parentElement.hasAttribute('role')
+          ) {
+            container = container.parentElement;
+          }
+        }
+        container.style.setProperty('display', 'none', 'important');
       });
 
-      const spans = document.querySelectorAll('[data-testid="sidebarColumn"] span');
+      const spans = document.querySelectorAll(
+        '[data-testid="sidebarColumn"] span, [data-testid="sidebarColumn"] h2'
+      );
       spans.forEach((span) => {
         const text = (span.innerText || span.textContent || '').trim().toLowerCase();
-        if (text === 'subscribe to premium') {
+        if (text === 'subscribe to premium' || text === 'who to follow' || text === 'live on x') {
           let container = span.closest('aside');
-          if (!container) {
+          if (container) {
+            // Same wrapper climbing logic
+            if (
+              container.parentElement &&
+              container.parentElement.getAttribute('data-testid') !== 'sidebarColumn'
+            ) {
+              container = container.parentElement;
+              if (
+                container.parentElement &&
+                container.parentElement.getAttribute('data-testid') !== 'sidebarColumn' &&
+                !container.parentElement.hasAttribute('role')
+              ) {
+                container = container.parentElement;
+              }
+            }
+          } else {
             let parent = span.parentElement;
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 10; i++) {
+              // Increased traversal depth slightly
               if (!parent || parent.getAttribute('data-testid') === 'sidebarColumn') {
                 break;
               }
@@ -106,6 +138,54 @@
           }
           if (container) {
             container.style.setProperty('display', 'none', 'important');
+          }
+        }
+      });
+
+      // 3. Hide all floating buttons/drawers in bottom right
+      // The DOM structure of X places these inside #layers > div > div
+      const layerContainers = document.querySelectorAll('#layers > div > div');
+      layerContainers.forEach((container) => {
+        // Check for Messages drawer
+        if (container.querySelector('[data-testid="msg-drawer"]')) {
+          container.style.setProperty('display', 'none', 'important');
+        }
+        // Check for Grok button
+        if (container.querySelector('button[aria-label="Grok"], a[aria-label="Grok"]')) {
+          container.style.setProperty('display', 'none', 'important');
+        }
+        // Check for the specific secondary floating button (often new Messages UI or Grok secondary)
+        if (
+          container.querySelector(
+            '.absolute.inset-0.w-full.h-full.select-none.flex.items-center.justify-center.cursor-pointer'
+          )
+        ) {
+          container.style.setProperty('display', 'none', 'important');
+        }
+        // Check for Grok drawer header specifically
+        if (container.querySelector('[data-testid="GrokDrawerHeader"]')) {
+          container.style.setProperty('display', 'none', 'important');
+        }
+        // Check for Compose post floating button (mobile/small screen)
+        if (container.querySelector('a[href="/compose/post"]')) {
+          container.style.setProperty('display', 'none', 'important');
+        }
+
+        // Aggressive fallback: Hide ANY layer container positioned in the bottom right corner
+        // (This catches "Return to top", new mystery buttons, etc.)
+        const hasButtons = container.querySelector('button, a, [role="button"]');
+        if (hasButtons) {
+          const rect = container.getBoundingClientRect();
+          // If the element is visible, has layout, and its center is in the bottom right quadrant
+          if (rect.width > 0 && rect.height > 0) {
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            if (centerX > window.innerWidth * 0.75 && centerY > window.innerHeight * 0.75) {
+              // Make sure it's not a generic overlay taking up the whole screen
+              if (rect.width < window.innerWidth * 0.5 && rect.height < window.innerHeight * 0.5) {
+                container.style.setProperty('display', 'none', 'important');
+              }
+            }
           }
         }
       });
