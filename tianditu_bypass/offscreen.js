@@ -57,32 +57,51 @@ function parseDatabay(doc) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "FETCH_HTML") {
+    console.log(`[OFFSCREEN] Fetching ${request.url}...`);
     fetch(request.url, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-cache',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language': 'en-US,en;q=0.9'
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': request.url
       }
     })
-    .then(r => r.text())
+
+    .then(r => {
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+      }
+      return r.text();
+    })
     .then(html => sendResponse({ html }))
-    .catch(e => sendResponse({ error: e.message }));
+    .catch(e => {
+      console.error(`[OFFSCREEN] Fetch error for ${request.url}:`, e);
+      sendResponse({ error: e.toString() });
+    });
     return true;
   }
 
-  if (request.type === "PARSE_PROXIES_MULTI") {
+  if (request.type === 'PARSE_PROXIES_MULTI') {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(request.html, 'text/html');
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(request.html, 'text/html');
+      let proxies = [];
+      if (request.sourceType === 'freeproxyworld') {
+        proxies = parseFreeproxyworld(doc);
+      } else if (request.sourceType === 'databay') {
+        proxies = parseDatabay(doc);
+      }
 
-    let proxies = [];
-    if (request.sourceType === 'freeproxyworld') {
-      proxies = parseFreeproxyworld(doc);
-    } else if (request.sourceType === 'databay') {
-      proxies = parseDatabay(doc);
+      sendResponse({ proxies: proxies });
+    } catch (e) {
+      console.error('[OFFSCREEN] Parsing error:', e);
+      sendResponse({ error: e.toString(), proxies: [] });
     }
-
-    sendResponse({ proxies: proxies });
     return true;
   }
 });
