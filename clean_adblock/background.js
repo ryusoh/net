@@ -112,3 +112,33 @@ try {
 } catch (e) {
   console.error('Background startup storage access failed:', e);
 }
+
+/**
+ * Tab Management: Auto-Close Annoying Update Pages
+ */
+function shouldCloseTab(url) {
+  if (!url) {return false;}
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname.includes('getadblock.com')) {
+      if (urlObj.pathname.includes('/update/') || urlObj.pathname.includes('/installed/')) {
+        return true;
+      }
+    }
+  } catch (e) {
+    /* Invalid URL */
+  }
+  return false;
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if ((changeInfo.url || tab.url) && shouldCloseTab(changeInfo.url || tab.url)) {
+    chrome.tabs.remove(tabId).catch(() => {});
+  }
+});
+
+chrome.tabs.onCreated.addListener((tab) => {
+  if (tab.pendingUrl && shouldCloseTab(tab.pendingUrl)) {
+    chrome.tabs.remove(tab.id).catch(() => {});
+  }
+});
