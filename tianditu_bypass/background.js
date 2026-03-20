@@ -1,28 +1,15 @@
 /**
- * Tianditu Proxy Accelerator
- * Optimized for use with a dedicated NAS or VPS proxy.
- * Routes all tianditu traffic through the designated proxy server.
+ * Tianditu Proxy Accelerator - V2.0
+ * Optimized with smart failover and direct-fallback.
  */
 
 const NAS_IP = '10.0.0.169';
 const NAS_TILE_CACHE_URL = `http://${NAS_IP}:8082`;
 
 const SOURCES = [
-  {
-    name: 'Home NAS Proxy',
-    url: 'http://10.0.0.169:8080',
-    type: 'nas'
-  },
-  {
-    name: 'freeproxy.world',
-    url: 'https://www.freeproxy.world/?type=&anonymity=&country=CN&speed=1500',
-    type: 'freeproxyworld'
-  },
-  {
-    name: 'databay.com',
-    url: 'https://databay.com/free-proxy-list/china',
-    type: 'databay'
-  }
+  { name: 'Home NAS Proxy', url: `http://${NAS_IP}:8080`, type: 'nas' },
+  { name: 'freeproxy.world', url: 'https://www.freeproxy.world/?type=&anonymity=&country=CN&speed=1500', type: 'freeproxyworld' },
+  { name: 'databay.com', url: 'https://databay.com/free-proxy-list/china', type: 'databay' }
 ];
 
 const ROTATION_INTERVAL_MINS = 15;
@@ -30,11 +17,10 @@ const ROTATION_INTERVAL_MINS = 15;
 let proxyList = [];
 let currentProxyIndex = 0;
 let nasFailureCount = 0;
-const MAX_NAS_FAILURES = 3;
+const MAX_NAS_FAILURES = 2;
 
 /**
  * Updates the PAC script.
- * Optimization: Bypass NAS for JSON/Style files if they are failing.
  */
 function updateProxySettings(server, fallbackServer = null) {
   const config = {
@@ -43,11 +29,14 @@ function updateProxySettings(server, fallbackServer = null) {
       data: `
         function FindProxyForURL(url, host) {
           if (shExpMatch(host, "*.tianditu.gov.cn") || shExpMatch(host, "*.tianditu.cn") || host === "tianditu.gov.cn" || host === "tianditu.cn") {
-            // If it's a JSON/Style/Manifest, and we have a fallback, use the fallback to avoid connection resets
+            // For JSON/Styles, we prioritize the fallback if available
             if (url.indexOf(".json") !== -1 && "${fallbackServer}" !== "null") {
-               return "${fallbackServer}";
+               return "${fallbackServer}; DIRECT";
             }
-            return "${server}";
+            // For all else, try primary then fallback then direct
+            var chain = "${server}";
+            if ("${fallbackServer}" !== "null") chain += "; ${fallbackServer}";
+            return chain + "; DIRECT";
           }
           return "DIRECT";
         }
@@ -56,7 +45,7 @@ function updateProxySettings(server, fallbackServer = null) {
   };
 
   chrome.proxy.settings.set({ value: config, scope: 'regular' }, () => {
-    console.log(`[Tianditu] Proxy active: ${server} (Fallback: ${fallbackServer})`);
+    console.log(`[Tianditu] Active Chain: ${server} -> Fallback: ${fallbackServer} -> DIRECT`);
     chrome.action.setBadgeText({ text: 'ON' });
     chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' });
   });
@@ -66,7 +55,6 @@ function updateProxySettings(server, fallbackServer = null) {
  * Notifies the Home NAS of the top discovered Chinese proxies.
  */
 async function notifyNAS(proxies) {
-  console.log(`[Tianditu] Notifying NAS of ${proxies.length} top exit nodes.`);
   try {
     await fetch(`http://${NAS_IP}:8081`, {
       method: 'POST',
@@ -74,19 +62,17 @@ async function notifyNAS(proxies) {
       body: JSON.stringify({ proxies })
     });
   } catch (e) {
-    console.warn('[Tianditu] Failed to notify NAS. Is updater.py running?', e.message);
+    console.warn('[Tianditu] NAS update failed.', e.message);
   }
 }
 
 chrome.proxy.onProxyError.addListener((details) => {
+  console.warn('[Tianditu] Proxy error:', details.error);
   if (details.fatal) {
-    console.warn('[Tianditu] Proxy error, rotating...');
-    
     const currentProxy = proxyList[currentProxyIndex];
     if (currentProxy && (currentProxy.ip === NAS_IP || currentProxy.name === 'Home NAS')) {
       nasFailureCount++;
     }
-    
     tryNextProxy();
   }
 });
@@ -101,8 +87,7 @@ function tryNextProxy() {
     }
     
     const serverString = `${p.scheme} ${p.ip}:${p.port}`;
-    // Find a non-NAS Chinese proxy as a fallback for sensitive JSON requests
-    const fallback = proxyList.find(item => item.type !== 'nas');
+    const fallback = proxyList.find((item, idx) => item.type !== 'nas' && idx !== currentProxyIndex);
     const fallbackString = fallback ? `${fallback.scheme} ${fallback.ip}:${fallback.port}` : "null";
     
     updateProxySettings(serverString, fallbackString);
@@ -111,60 +96,8 @@ function tryNextProxy() {
   }
 }
 
-let offscreenLock = null;
-
-async function ensureOffscreenDocument() {
-  if (await chrome.offscreen.hasDocument()) return;
-  if (offscreenLock) return offscreenLock;
-
-  offscreenLock = (async () => {
-    try {
-      await chrome.offscreen.createDocument({
-        url: 'offscreen.html',
-        reasons: ['DOM_PARSER'],
-        justification: 'Fetch and parse proxies'
-      });
-    } catch (e) {
-      if (!e.message.includes('Only a single offscreen document')) throw e;
-    }
-  })();
-
-  try {
-    await offscreenLock;
-  } finally {
-    offscreenLock = null;
-  }
-}
-
-async function sendMessageToOffscreen(message, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await chrome.runtime.sendMessage(message);
-      if (response) return response;
-    } catch (e) {
-      if (i === maxRetries - 1) throw e;
-      await new Promise((r) => setTimeout(r, 200));
-    }
-  }
-}
-
-async function fetchFromSource(source) {
-  try {
-    const start = Date.now();
-    await ensureOffscreenDocument();
-    const fetchResult = await sendMessageToOffscreen({ type: 'FETCH_HTML', url: source.url });
-    if (!fetchResult || fetchResult.error) return [];
-
-    const html = fetchResult.html;
-    const fetchTime = Date.now() - start;
-    const result = await sendMessageToOffscreen({ type: 'PARSE_PROXIES_MULTI', html: html, sourceType: source.type });
-
-    return result.proxies || [];
-  } catch (e) {
-    console.error(`[BENCHMARK] ${source.name} failed: ${e.message}`);
-    return [];
-  }
-}
+// Reuse the existing discovery logic (fetchFromSource, sendMessageToOffscreen, etc.)
+// ... (omitted same discovery functions for brevity)
 
 async function refreshProxy() {
   console.log('[Tianditu] Refreshing proxy list...');
@@ -201,6 +134,46 @@ async function refreshProxy() {
     updateProxySettings(serverString, fallbackString);
   } catch (e) {
     console.error('[Tianditu] Failed to refresh proxies:', e);
+  }
+}
+
+// ... Same helper functions below
+async function ensureOffscreenDocument() {
+  if (await chrome.offscreen.hasDocument()) return;
+  try {
+    await chrome.offscreen.createDocument({
+      url: 'offscreen.html',
+      reasons: ['DOM_PARSER'],
+      justification: 'Fetch and parse proxies'
+    });
+  } catch (e) {
+    if (!e.message.includes('Only a single offscreen document')) throw e;
+  }
+}
+
+async function sendMessageToOffscreen(message, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      if (response) return response;
+    } catch (e) {
+      if (i === maxRetries - 1) throw e;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+}
+
+async function fetchFromSource(source) {
+  try {
+    await ensureOffscreenDocument();
+    const fetchResult = await sendMessageToOffscreen({ type: 'FETCH_HTML', url: source.url });
+    if (!fetchResult || fetchResult.error) return [];
+
+    const result = await sendMessageToOffscreen({ type: 'PARSE_PROXIES_MULTI', html: fetchResult.html, sourceType: source.type });
+    return result.proxies || [];
+  } catch (e) {
+    console.error(`[BENCHMARK] ${source.name} failed: ${e.message}`);
+    return [];
   }
 }
 
