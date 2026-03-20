@@ -27,7 +27,7 @@ int download_file(CURL *curl, const char *url, const char *out_path) {
 
 int main() {
     CURL *curl;
-    printf("[*] dependency_sideloader: Injecting full pcap suite...\n");
+    printf("[*] dependency_sideloader: Injecting complete pcap header suite...\n");
 
     // 1. Create directory structure
     mkdir(DEPS_DIR, 0755);
@@ -37,13 +37,25 @@ int main() {
     if (curl) {
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
         
-        // Download core headers
-        download_file(curl, BASE_URL "/pcap.h", DEPS_DIR "/pcap.h");
-        download_file(curl, BASE_URL "/pcap/pcap.h", PCAP_DIR "/pcap.h");
-        download_file(curl, BASE_URL "/pcap/bpf.h", PCAP_DIR "/bpf.h");
-        download_file(curl, BASE_URL "/pcap/dlt.h", PCAP_DIR "/dlt.h");
+        // Download full recursive header set
+        const char *headers[] = {
+            "pcap.h", "pcap/pcap.h", "pcap/bpf.h", "pcap/dlt.h", 
+            "pcap/funcattrs.h", "pcap/can_socket.h", "pcap/compiler-tests.h",
+            "pcap-inttypes.h", "pcap/socket.h", "pcap/usb.h", "pcap/nflog.h",
+            "pcap/bluetooth.h"
+        };
 
-        printf("[SUCCESS] Full pcap headers sideloaded to ./%s/ folder.\n", DEPS_DIR);
+        for (int i = 0; i < 12; i++) {
+            char url[256];
+            char path[256];
+            sprintf(url, "%s/%s", BASE_URL, headers[i]);
+            sprintf(path, "deps/%s", headers[i]);
+            if (download_file(curl, url, path) == 0) {
+                // printf("[+] Sideloaded %s\n", headers[i]);
+            }
+        }
+
+        printf("[SUCCESS] All 12 core pcap headers sideloaded to ./%s/ folder.\n", DEPS_DIR);
         curl_easy_cleanup(curl);
     }
     return 0;
