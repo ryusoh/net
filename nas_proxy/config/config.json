@@ -22,12 +22,12 @@
       "settings": {
         "servers": [
           {
-            "address": "REPLACE_WITH_CHINESE_PROXY_IP",
+            "address": "REPLACE_WITH_WORKING_CHINESE_PROXY_IP",
             "port": 1080
           }
         ]
       },
-      "tag": "proxy"
+      "tag": "china-proxy"
     },
     {
       "protocol": "freedom",
@@ -38,7 +38,7 @@
     "rules": [
       {
         "type": "field",
-        "outboundTag": "proxy",
+        "outboundTag": "china-proxy",
         "domain": ["domain:tianditu.gov.cn", "domain:tianditu.cn"]
       },
       {
