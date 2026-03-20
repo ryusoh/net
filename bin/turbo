@@ -22,19 +22,25 @@ setup() {
 }
 
 build() {
-    echo "[*] Launching Turbo Build (eBPF + C-Tools)..."
+    echo "[*] Launching Turbo Build (High-Speed Native Docker)..."
     mkdir -p "$CCACHE_PATH"
     export DOCKER_BUILDKIT=1
     
+    # Use --tmpfs to build in RAM (Speed)
+    # Use make -j$(nproc) to use all CPU cores (Speed)
     sudo docker run --rm \
         -v "$PROJECT_ROOT":/app \
         -v "$CCACHE_PATH":/root/.ccache \
         -e CCACHE_DIR=/root/.ccache \
-        ebpf-builder /bin/bash -c "make -C vps_kernel_proxy all && make -C nas_proxy all"
+        --tmpfs /tmp:exec,mode=777 \
+        ebpf-builder /bin/bash -c "make -C vps_kernel_proxy all -j$(nproc) && make -C nas_proxy all -j$(nproc)"
 }
 
 scrub() {
-    ./bin/ctx_cleaner
+    echo "[*] Scrubbing build context..."
+    find . -name ".DS_Store" -delete
+    find . -name "__pycache__" -type d -exec rm -rf {} +
+    echo "[Done] Context cleaned."
 }
 
 case "$1" in
