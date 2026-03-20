@@ -72,11 +72,11 @@ int fetch_proxy_list(const char *url) {
                 printf("[!] BLOCKED by Cloudflare. Challenge detected.\n");
             } else {
                 printf("[SUCCESS] Retrieved %lu bytes from %s\n", (long)chunk.size, url);
-                FILE *fp = fopen("/volume1/docker/networking/nas_proxy/proxies.html", "w");
+                FILE *fp = fopen("proxies.html", "w");
                 if (fp) {
                     fwrite(chunk.memory, 1, chunk.size, fp);
                     fclose(fp);
-                    printf("[*] Saved proxy list to /volume1/docker/networking/nas_proxy/proxies.html\n");
+                    printf("[*] Saved proxy list to proxies.html\n");
                 }
             }
         }

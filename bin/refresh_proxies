@@ -17,11 +17,12 @@ if [ ! -f "$SCRAPER_BIN" ]; then
 fi
 
 # 2. Run the Scraper
-$PROJECT_ROOT/nas_proxy/proxy_scraper
+cd "$PROJECT_ROOT/nas_proxy"
+./proxy_scraper
 
 if [ $? -eq 0 ]; then
     echo "[*] Injecting fresh proxies into V2Ray config..."
-    python3 $PROJECT_ROOT/nas_proxy/updater.py
+    python3 ./updater.py
     echo "[SUCCESS] System updated at $(date)"
 else
     echo "[ERROR] Scraper failed at $(date)"
