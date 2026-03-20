@@ -5,6 +5,10 @@
     "loglevel": "warning"
   },
   "dns": {
+    "hosts": {
+      "domain:tianditu.gov.cn": "223.5.5.5",
+      "domain:tianditu.cn": "223.5.5.5"
+    },
     "servers": [
       "223.5.5.5",
       "119.29.29.29",
@@ -30,6 +34,13 @@
   ],
   "outbounds": [
     {
+      "protocol": "freedom",
+      "settings": {
+        "domainStrategy": "UseIP"
+      },
+      "tag": "direct"
+    },
+    {
       "protocol": "http",
       "settings": {
         "servers": [
@@ -39,20 +50,7 @@
           }
         ]
       },
-      "streamSettings": {
-        "sockopt": {
-          "connectionReuse": true,
-          "tcpFastOpen": true
-        }
-      },
       "tag": "china-proxy"
-    },
-    {
-      "protocol": "freedom",
-      "settings": {
-        "domainStrategy": "UseIP"
-      },
-      "tag": "direct"
     }
   ],
   "routing": {
@@ -60,7 +58,7 @@
     "rules": [
       {
         "type": "field",
-        "outboundTag": "china-proxy",
+        "outboundTag": "direct",
         "domain": [
           "domain:tianditu.gov.cn",
           "domain:tianditu.cn"
