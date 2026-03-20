@@ -51,14 +51,14 @@ services:
       INTERFACE: 'eth0'
       PIHOLE_DNS_: '8.8.4.4;1.1.1.1' # Adding Google Secondary and Cloudflare
     volumes:
-      - './pihole/etc-pihole:/etc/pihole'
-      - './pihole/etc-dnsmasq.d:/etc/dnsmasq.d'
-      - '.:/var/www/html/nas:ro' # Serve current folder as http://<IP>:8000/nas/
+      - 'pihole_etc:/etc/pihole'
+      - 'pihole_dnsmasq:/etc/dnsmasq.d'
+      - './proxies.html:/var/www/html/proxies.html:ro' # Direct root access
     cap_add:
       - NET_ADMIN
     restart: always
 
 volumes:
-  # Using named volumes for local stability, but mapped to folders for easier NAS management
-  pihole_data:
-  dnsmasq_data:
+  # Using named volumes for NAS stability
+  pihole_etc:
+  pihole_dnsmasq:
