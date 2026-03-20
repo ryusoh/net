@@ -8,9 +8,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 """
 NAS Proxy Auto-Updater with Health Checking
 --------------------------------------------
-1. Parses SOCKS5 proxy list from proxies.html
-2. Tests each proxy against tianditu.gov.cn (418 = geo-blocked = skip)
-3. Only deploys proxies that actually return 200 (Chinese exit IP)
+1. Parses proxy list from proxies.html (populated by C scraper)
+2. Also fetches from Geonode JSON API directly (China-filtered)
+3. Tests each proxy against tianditu.gov.cn
+4. Only deploys proxies that return 200 (Chinese exit IP confirmed)
 """
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config", "config.json")
@@ -18,91 +19,131 @@ PROXIES_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config", "proxies
 PROXY_FILE = os.path.join(os.path.dirname(__file__), "proxies.html")
 
 TEST_URL = "https://map.tianditu.gov.cn/"
-CONNECT_TIMEOUT = 6
-MAX_TIME = 10
-MAX_WORKERS = 30  # parallel health checks
-MAX_WORKING_PROXIES = 5  # stop after finding enough
+CONNECT_TIMEOUT = 8
+MAX_TIME = 12
+MAX_WORKERS = 40
+MAX_WORKING_PROXIES = 5
+
+# Additional API sources fetched directly from Python
+GEONODE_APIS = [
+    "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&country=CN&protocols=socks5",
+    "https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&country=CN&protocols=socks4",
+]
+
+
+def fetch_geonode_proxies():
+    """Fetch proxies from Geonode JSON API (country=CN)."""
+    proxies = []
+    for url in GEONODE_APIS:
+        try:
+            result = subprocess.run(
+                ["curl", "-s", "--max-time", "15", url],
+                capture_output=True, text=True, timeout=20
+            )
+            data = json.loads(result.stdout)
+            for p in data.get("data", []):
+                ip = p.get("ip", "")
+                port = p.get("port", "")
+                if ip and port:
+                    proxies.append({"address": ip, "port": int(port)})
+                    print(f"  [Geonode] {ip}:{port}")
+        except Exception as e:
+            print(f"  [Geonode] Failed: {e}")
+    return proxies
 
 
 def test_proxy(ip, port):
-    """Test if a SOCKS5 proxy can reach tianditu without getting 418 (geo-blocked)."""
-    try:
-        result = subprocess.run(
-            [
-                "curl", "-s", "-o", "/dev/null",
-                "-w", "%{http_code}",
-                "--proxy", f"socks5h://{ip}:{port}",
-                "--connect-timeout", str(CONNECT_TIMEOUT),
-                "--max-time", str(MAX_TIME),
-                TEST_URL
-            ],
-            capture_output=True, text=True,
-            timeout=MAX_TIME + 5
-        )
-        code = result.stdout.strip()
-        if code in ("200", "301", "302"):
-            print(f"  [OK] {ip}:{port} -> HTTP {code}")
-            return True
-        else:
-            print(f"  [--] {ip}:{port} -> HTTP {code}")
-            return False
-    except Exception as e:
-        print(f"  [--] {ip}:{port} -> {e}")
-        return False
+    """Test if a proxy can reach tianditu without getting 418/000."""
+    # Try socks5h first (DNS through proxy), then socks5, then socks4
+    for scheme in ["socks5h", "socks5", "socks4"]:
+        try:
+            result = subprocess.run(
+                [
+                    "curl", "-s", "-o", "/dev/null",
+                    "-w", "%{http_code}",
+                    "--proxy", f"{scheme}://{ip}:{port}",
+                    "--connect-timeout", str(CONNECT_TIMEOUT),
+                    "--max-time", str(MAX_TIME),
+                    TEST_URL
+                ],
+                capture_output=True, text=True,
+                timeout=MAX_TIME + 5
+            )
+            code = result.stdout.strip()
+            if code in ("200", "301", "302"):
+                print(f"  [OK] {ip}:{port} ({scheme}) -> HTTP {code}")
+                return scheme
+            elif code != "000":
+                print(f"  [--] {ip}:{port} ({scheme}) -> HTTP {code}")
+                return None  # Got a response but wrong code, don't retry other schemes
+        except Exception:
+            pass
+    return None
 
 
 def update_v2ray_config():
-    if not os.path.exists(PROXY_FILE):
-        print(f"[-] {PROXY_FILE} not found. Run scraper first.")
-        return
-
-    # 1. Parse raw IP:Port list
+    # 1. Parse proxies from scraper output
     proxies = []
-    try:
+    if os.path.exists(PROXY_FILE):
         with open(PROXY_FILE, 'r') as f:
             content = f.read()
             matches = re.findall(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', content)
             for ip, port in matches:
-                if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("127."):
+                if ip.startswith(("10.", "192.168.", "127.", "0.")):
                     continue
                 proxies.append({"address": ip, "port": int(port)})
-    except Exception as e:
-        print(f"[-] Error reading proxy file: {e}")
+    else:
+        print(f"[*] {PROXY_FILE} not found, using API sources only.")
+
+    # 2. Also fetch from Geonode API
+    print("[*] Fetching from Geonode API (country=CN)...")
+    geonode = fetch_geonode_proxies()
+
+    # Deduplicate, prioritize Geonode (China-filtered) first
+    seen = set()
+    all_proxies = []
+    for p in geonode + proxies:
+        key = f"{p['address']}:{p['port']}"
+        if key not in seen:
+            seen.add(key)
+            all_proxies.append(p)
+
+    if not all_proxies:
+        print("[-] No proxies found from any source.")
         return
 
-    if not proxies:
-        print("[-] No valid proxies found in file.")
-        return
+    print(f"\n[*] Testing {len(all_proxies)} proxies against tianditu...")
 
-    print(f"[*] Parsed {len(proxies)} proxies. Health-checking against tianditu...")
-
-    # 2. Health-check proxies in parallel, stop early when we have enough
+    # 3. Health-check in parallel
     working = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_proxy = {
             executor.submit(test_proxy, p["address"], p["port"]): p
-            for p in proxies
+            for p in all_proxies
         }
         for future in as_completed(future_to_proxy):
             if len(working) >= MAX_WORKING_PROXIES:
-                # Cancel remaining futures
                 for f in future_to_proxy:
                     f.cancel()
                 break
             proxy = future_to_proxy[future]
             try:
-                if future.result():
+                scheme = future.result()
+                if scheme:
                     working.append(proxy)
             except Exception:
                 pass
 
     if not working:
-        print("[-] No working Chinese-exit proxies found. Try running scraper again.")
+        print("\n[-] No working Chinese-exit proxies found from any source.")
+        print("[-] All proxies either timed out (000) or returned 418 (geo-blocked).")
         return
 
-    print(f"[+] Found {len(working)} working Chinese-exit proxies!")
+    print(f"\n[+] Found {len(working)} VERIFIED Chinese-exit proxies!")
+    for p in working:
+        print(f"    {p['address']}:{p['port']}")
 
-    # 3. Create SOCKS5 outbound config
+    # 4. Create outbound config
     proxies_config = {
         "outbounds": [
             {
@@ -113,7 +154,6 @@ def update_v2ray_config():
         ]
     }
 
-    # 4. Save config
     try:
         os.makedirs(os.path.dirname(PROXIES_CONFIG_PATH), exist_ok=True)
         with open(PROXIES_CONFIG_PATH, 'w') as f:
@@ -126,6 +166,7 @@ def update_v2ray_config():
     # 5. Reload V2Ray
     print("[*] Restarting nas_proxy container...")
     subprocess.run(["sudo", "docker", "restart", "nas_proxy"])
+    print("[+] Done! Reload Chrome extension and try map.tianditu.gov.cn")
 
 
 if __name__ == "__main__":
