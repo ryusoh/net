@@ -1,15 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Tianditu Hybrid Accelerator",
-  "version": "1.7",
-  "description": "Fast-path spoofing with automatic multi-source proxy failover and session cleaning.",
+  "version": "1.8",
+  "description": "Fast multi-source proxy failover and session cleaning.",
   "permissions": [
     "proxy",
     "storage",
     "alarms",
     "offscreen",
     "webRequest",
-    "declarativeNetRequest",
     "cookies",
     "browsingData"
   ],
@@ -26,15 +25,6 @@
   },
   "action": {
     "default_title": "Tianditu Accelerator Status"
-  },
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "ruleset_1",
-        "enabled": true,
-        "path": "rules.json"
-      }
-    ]
   },
   "icons": {
     "128": "icon.png"

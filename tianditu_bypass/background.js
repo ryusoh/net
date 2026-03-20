@@ -1,13 +1,13 @@
 /**
- * Tianditu Hybrid Accelerator
- * Automatically switches between "Fast-Path" (Spoofing) and "Safe-Path" (Proxy).
- * Multi-source fetch for higher reliability.
+ * Tianditu Proxy Accelerator
+ * Optimized for use with a dedicated NAS or VPS proxy.
+ * Routes all tianditu traffic through the designated proxy server.
  */
 
 const SOURCES = [
   {
     name: 'Home NAS Proxy',
-    url: 'http://10.0.0.169:8080', // We'll assume the HTTP relay is working or we'll use a hardcoded entry
+    url: 'http://10.0.0.169:8080',
     type: 'nas'
   },
   {
@@ -26,58 +26,18 @@ const ROTATION_INTERVAL_MINS = 15;
 
 let proxyList = [];
 let currentProxyIndex = 0;
-const failedHosts = new Set();
-let currentProxyServer = '';
-let forceProxyMode = false;
-
-/**
- * Clears cookies and session data for Tianditu to un-stick WAF blocks.
- */
-async function clearSessionState() {
-  console.log('[Tianditu] Clearing session state to reset WAF reputation...');
-  const domains = ['tianditu.gov.cn', 'tianditu.cn'];
-
-  for (const domain of domains) {
-    // Clear cookies
-    const cookies = await chrome.cookies.getAll({ domain });
-    for (const cookie of cookies) {
-      const url = `http${cookie.secure ? 's' : ''}://${cookie.domain}${cookie.path}`;
-      await chrome.cookies.remove({ url, name: cookie.name });
-    }
-  }
-
-  // Clear cache for these origins
-  await chrome.browsingData.remove(
-    {
-      origins: domains.map((d) => `https://map.${d}`)
-    },
-    { cache: true }
-  );
-}
 
 /**
  * Updates the PAC script.
  */
 function updateProxySettings(server) {
-  currentProxyServer = server;
-  const failedHostsList = Array.from(failedHosts)
-    .map((h) => `"${h}"`)
-    .join(',');
-
   const config = {
     mode: 'pac_script',
     pacScript: {
       data: `
-        const failedHosts = [${failedHostsList}];
-        const forceProxy = ${forceProxyMode};
         function FindProxyForURL(url, host) {
           if (shExpMatch(host, "*.tianditu.gov.cn") || shExpMatch(host, "*.tianditu.cn") || host === "tianditu.gov.cn" || host === "tianditu.cn") {
-            // If we are in force mode or if this specific host failed before
-            if (forceProxy || failedHosts.indexOf(host) !== -1) {
-              return "${server}";
-            }
-            // Try DIRECT first (Fast-Path headers injected by DNR)
-            return "DIRECT";
+            return "${server}";
           }
           return "DIRECT";
         }
@@ -86,152 +46,10 @@ function updateProxySettings(server) {
   };
 
   chrome.proxy.settings.set({ value: config, scope: 'regular' }, () => {
-    const mode = forceProxyMode ? 'FORCE PROXY' : 'HYBRID';
-    console.log(`[Tianditu] ${mode} config updated. Proxy: ${server}. Failed: ${failedHosts.size}`);
-    chrome.action.setBadgeText({ text: forceProxyMode ? 'PRX' : 'ACC' });
-    chrome.action.setBadgeBackgroundColor({ color: forceProxyMode ? '#F44336' : '#4CAF50' });
+    console.log(`[Tianditu] Proxy active: ${server}`);
+    chrome.action.setBadgeText({ text: 'ON' });
+    chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' });
   });
-}
-
-// Listen for 418 (WAF Block) or Connection Reset to trigger failover
-chrome.webRequest.onHeadersReceived.addListener(
-  (details) => {
-    if (details.statusCode === 418) {
-      const host = new URL(details.url).hostname;
-      console.warn(`[Tianditu] 418 Block detected for ${host}.`);
-
-      if (!failedHosts.has(host)) {
-        failedHosts.add(host);
-        // If the main frame is blocked, we switch to force proxy mode for the session
-        if (details.type === 'main_frame') {
-          forceProxyMode = true;
-          clearSessionState();
-        }
-        updateProxySettings(currentProxyServer);
-      }
-    }
-  },
-  { urls: ['*://*.tianditu.gov.cn/*', '*://*.tianditu.cn/*'] }
-);
-
-chrome.webRequest.onErrorOccurred.addListener(
-  (details) => {
-    const host = new URL(details.url).hostname;
-    if (!failedHosts.has(host)) {
-      console.warn(`[Tianditu] Connection failure (${details.error}) for ${host}.`);
-      failedHosts.add(host);
-      updateProxySettings(currentProxyServer);
-    }
-  },
-  { urls: ['*://*.tianditu.gov.cn/*', '*://*.tianditu.cn/*'] }
-);
-
-// Manual reset/toggle via extension icon click
-chrome.action.onClicked.addListener(() => {
-  forceProxyMode = !forceProxyMode;
-  if (forceProxyMode) {
-    clearSessionState();
-  } else {
-    failedHosts.clear();
-  }
-  updateProxySettings(currentProxyServer);
-});
-
-chrome.proxy.onProxyError.addListener((details) => {
-  if (details.fatal) {
-    console.warn('[Tianditu] Fatal proxy error, rotating...');
-    tryNextProxy();
-  }
-});
-
-function tryNextProxy() {
-  currentProxyIndex++;
-  if (currentProxyIndex < proxyList.length) {
-    const p = proxyList[currentProxyIndex];
-    updateProxySettings(`${p.scheme} ${p.ip}:${p.port}`);
-  } else {
-    refreshProxy();
-  }
-}
-
-let offscreenLock = null;
-
-async function ensureOffscreenDocument() {
-  if (await chrome.offscreen.hasDocument()) {
-    return;
-  }
-  if (offscreenLock) {
-    return offscreenLock;
-  }
-
-  offscreenLock = (async () => {
-    try {
-      await chrome.offscreen.createDocument({
-        url: 'offscreen.html',
-        reasons: ['DOM_PARSER'],
-        justification: 'Fetch and parse proxies'
-      });
-    } catch (e) {
-      if (!e.message.includes('Only a single offscreen document')) {
-        throw e;
-      }
-    }
-  })();
-
-  try {
-    await offscreenLock;
-  } finally {
-    offscreenLock = null;
-  }
-}
-
-async function sendMessageToOffscreen(message, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await chrome.runtime.sendMessage(message);
-      if (response) {
-        return response;
-      }
-    } catch (e) {
-      if (i === maxRetries - 1) {
-        throw e;
-      }
-      await new Promise((r) => setTimeout(r, 200));
-    }
-  }
-}
-
-async function fetchFromSource(source) {
-  try {
-    const start = Date.now();
-    await ensureOffscreenDocument();
-    const fetchResult = await sendMessageToOffscreen({ type: 'FETCH_HTML', url: source.url });
-    if (!fetchResult || fetchResult.error) {
-      return [];
-    }
-
-    const html = fetchResult.html;
-    const fetchTime = Date.now() - start;
-    const result = await sendMessageToOffscreen({
-      type: 'PARSE_PROXIES_MULTI',
-      html: html,
-      sourceType: source.type
-    });
-
-    if (result && result.proxies && result.proxies.length > 0) {
-      const avg = Math.round(
-        result.proxies.reduce((a, b) => a + b.speed, 0) / result.proxies.length
-      );
-      const min = Math.min(...result.proxies.map((p) => p.speed));
-      console.log(
-        `[BENCHMARK] ${source.name}: Found ${result.proxies.length} proxies in ${fetchTime}ms. Avg: ${avg}ms. Fastest: ${min}ms.`
-      );
-    }
-    return result.proxies || [];
-  } catch (e) {
-    console.error(`[BENCHMARK] ${source.name} failed: ${e.message}`);
-    return [];
-  }
 }
 
 /**
@@ -250,6 +68,83 @@ async function notifyNAS(proxies) {
   }
 }
 
+chrome.proxy.onProxyError.addListener((details) => {
+  if (details.fatal) {
+    console.warn('[Tianditu] Proxy error, rotating...');
+    tryNextProxy();
+  }
+});
+
+function tryNextProxy() {
+  currentProxyIndex++;
+  if (currentProxyIndex < proxyList.length) {
+    const p = proxyList[currentProxyIndex];
+    updateProxySettings(`${p.scheme} ${p.ip}:${p.port}`);
+  } else {
+    refreshProxy();
+  }
+}
+
+let offscreenLock = null;
+
+async function ensureOffscreenDocument() {
+  if (await chrome.offscreen.hasDocument()) return;
+  if (offscreenLock) return offscreenLock;
+
+  offscreenLock = (async () => {
+    try {
+      await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: ['DOM_PARSER'],
+        justification: 'Fetch and parse proxies'
+      });
+    } catch (e) {
+      if (!e.message.includes('Only a single offscreen document')) throw e;
+    }
+  })();
+
+  try {
+    await offscreenLock;
+  } finally {
+    offscreenLock = null;
+  }
+}
+
+async function sendMessageToOffscreen(message, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      if (response) return response;
+    } catch (e) {
+      if (i === maxRetries - 1) throw e;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+}
+
+async function fetchFromSource(source) {
+  try {
+    const start = Date.now();
+    await ensureOffscreenDocument();
+    const fetchResult = await sendMessageToOffscreen({ type: 'FETCH_HTML', url: source.url });
+    if (!fetchResult || fetchResult.error) return [];
+
+    const html = fetchResult.html;
+    const fetchTime = Date.now() - start;
+    const result = await sendMessageToOffscreen({ type: 'PARSE_PROXIES_MULTI', html: html, sourceType: source.type });
+
+    if (result && result.proxies && result.proxies.length > 0) {
+      const avg = Math.round(result.proxies.reduce((a, b) => a + b.speed, 0) / result.proxies.length);
+      const min = Math.min(...result.proxies.map((p) => p.speed));
+      console.log(`[BENCHMARK] ${source.name}: Found ${result.proxies.length} proxies in ${fetchTime}ms. Avg: ${avg}ms. Fastest: ${min}ms.`);
+    }
+    return result.proxies || [];
+  } catch (e) {
+    console.error(`[BENCHMARK] ${source.name} failed: ${e.message}`);
+    return [];
+  }
+}
+
 async function refreshProxy() {
   console.log('[Tianditu] Refreshing proxy list...');
   try {
@@ -259,7 +154,6 @@ async function refreshProxy() {
     );
     const fetchedProxies = results.flat();
 
-    // Always prepend the Home NAS Proxy as the fastest option
     const nasProxy = {
       ip: '10.0.0.169',
       port: '8080',
@@ -271,7 +165,6 @@ async function refreshProxy() {
     if (fetchedProxies.length > 0) {
       const sorted = fetchedProxies.sort((a, b) => a.speed - b.speed);
       proxyList = [nasProxy, ...sorted];
-      // Notify NAS of the top 3 best exit nodes we found
       notifyNAS(sorted.slice(0, 3));
     } else {
       proxyList = [nasProxy];
@@ -283,11 +176,8 @@ async function refreshProxy() {
     console.error('[Tianditu] Failed to refresh proxies:', e);
   }
 }
+
 chrome.alarms.create('refreshProxy', { periodInMinutes: ROTATION_INTERVAL_MINS });
-chrome.alarms.onAlarm.addListener((a) => {
-  if (a.name === 'refreshProxy') {
-    refreshProxy();
-  }
-});
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === 'refreshProxy') refreshProxy(); });
 chrome.runtime.onInstalled.addListener(refreshProxy);
 chrome.runtime.onStartup.addListener(refreshProxy);
