@@ -5,3 +5,5 @@ nas_proxy/tiles/
 .env
 *.o
 *.bin
+*.so
+*.dylib
