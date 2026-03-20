@@ -2,7 +2,7 @@
   "inbounds": [
     {
       "port": 1080,
-      "protocol": "socks",
+      "protocol": "http",
       "settings": {
         "auth": "noauth",
         "udp": true
@@ -18,7 +18,7 @@
   ],
   "outbounds": [
     {
-      "protocol": "socks",
+      "protocol": "http",
       "settings": {
         "servers": [
           {
