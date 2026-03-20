@@ -12,6 +12,7 @@ RUN apt update && apt install -y \
     libelf-dev \
     libbpf-dev \
     libcurl4-openssl-dev \
+    libpcap-dev \
     ccache \
     m4 \
     pkg-config \
