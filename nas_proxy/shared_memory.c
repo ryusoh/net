@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 /**
  * Enhancement #3: Shared Memory IPC
@@ -62,9 +63,9 @@ int main(int argc, char *argv[]) {
         printf("[Done] Shared Memory is now 'Live'.\n");
     } else {
         printf("--- [ NAS REAL-TIME STATS (via Shared Memory) ] ---\n");
-        printf("Total Packets:   %llu\n", stats->total_packets);
-        printf("Blocked Packets: %llu\n", stats->blocked_packets);
-        printf("Tiles Cached:    %llu\n", stats->tiles_cached);
+        printf("Total Packets:   %" PRIu64 "\n", stats->total_packets);
+        printf("Blocked Packets: %" PRIu64 "\n", stats->blocked_packets);
+        printf("Tiles Cached:    %" PRIu64 "\n", stats->tiles_cached);
         printf("Last Block IP:   %s\n", stats->last_blocked_ip);
     }
 

@@ -20,18 +20,22 @@ const char *APPLE_RESPONSE = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n
 
 void handle_client(int client_fd) {
     char buffer[BUFFER_SIZE];
-    read(client_fd, buffer, BUFFER_SIZE);
+    ssize_t n = read(client_fd, buffer, BUFFER_SIZE);
+    if (n <= 0) {
+        close(client_fd);
+        return;
+    }
 
     if (strstr(buffer, "msftconnecttest.com") || strstr(buffer, "connecttest.txt")) {
-        write(client_fd, MS_RESPONSE, strlen(MS_RESPONSE));
+        if (write(client_fd, MS_RESPONSE, strlen(MS_RESPONSE)) < 0) perror("write ms");
         printf("[NCSI] Spoofed Windows Connectivity Check\n");
     } else if (strstr(buffer, "apple.com") || strstr(buffer, "hotspot-detect.html")) {
-        write(client_fd, APPLE_RESPONSE, strlen(APPLE_RESPONSE));
+        if (write(client_fd, APPLE_RESPONSE, strlen(APPLE_RESPONSE)) < 0) perror("write apple");
         printf("[CNA] Spoofed Apple Connectivity Check\n");
     } else {
         // Default success for others (Android, etc.)
         const char *gen_204 = "HTTP/1.1 204 No Content\r\n\r\n";
-        write(client_fd, gen_204, strlen(gen_204));
+        if (write(client_fd, gen_204, strlen(gen_204)) < 0) perror("write 204");
     }
     close(client_fd);
 }
