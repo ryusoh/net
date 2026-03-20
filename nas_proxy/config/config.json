@@ -39,18 +39,6 @@
         "domainStrategy": "UseIP"
       },
       "tag": "direct"
-    },
-    {
-      "protocol": "http",
-      "settings": {
-        "servers": [
-          {
-            "address": "183.6.7.103",
-            "port": 4145
-          }
-        ]
-      },
-      "tag": "china-proxy"
     }
   ],
   "routing": {

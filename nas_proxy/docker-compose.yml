@@ -13,7 +13,7 @@ services:
     volumes:
       - ./config:/etc/v2ray
       - ./logs:/var/log/v2ray
-    command: run -c /etc/v2ray/config.json
+    command: run -d /etc/v2ray
 
   # Tianditu Map Tile Accelerator
   # Caches Chinese map tiles locally on the NAS to bypass slow exit nodes
