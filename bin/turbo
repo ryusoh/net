@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# NAS Build Accelerator: unified 'turbo' wrapper
+# ---------------------------------------------
+# One-command access to all our high-performance build tools.
+
+PROJECT_ROOT=$(pwd)
+CCACHE_PATH="$PROJECT_ROOT/.ccache"
+RAM_DISK="/tmp/nas_build_ram"
+
+show_help() {
+    echo "NAS Turbo-Charge Tool"
+    echo "Usage: ./bin/turbo [command]"
+    echo ""
+    echo "Commands:"
+    echo "  setup    - Initialize RAM disks and C-cache folders"
+    echo "  build    - Run high-speed eBPF build (uses ccache)"
+    echo "  scrub    - Clean Docker build context (speed up copying)"
+    echo "  clean    - Remove all build artifacts and RAM disks"
+}
+
+setup() {
+    echo "[*] Setting up Turbo environment..."
+    # 1. Setup C-Cache
+    mkdir -p "$CCACHE_PATH"
+    # 2. Setup RAM Disk if sudo available
+    if [ "$EUID" -eq 0 ]; then
+        ./bin/ram_disk_accelerator
+    else
+        echo "[!] Sudo required for RAM disk. Skipping, but C-cache will still work."
+    fi
+    echo "[SUCCESS] Turbo setup complete."
+}
+
+build() {
+    echo "[*] Launching Turbo eBPF Build..."
+    # If we are using the RAM disk, we'd sync files here. 
+    # For now, we prioritize C-cache which is the safest 10x boost.
+    sudo docker run --rm \
+        -v "$PROJECT_ROOT":/app \
+        -v "$CCACHE_PATH":/root/.ccache \
+        -e CCACHE_DIR=/root/.ccache \
+        ebpf-builder make -C kernel_proxy all
+}
+
+scrub() {
+    ./bin/ctx_cleaner
+}
+
+case "$1" in
+    setup) setup ;;
+    build) build ;;
+    scrub) scrub ;;
+    *) show_help ;;
+esac

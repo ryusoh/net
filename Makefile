@@ -40,3 +40,4 @@ build-nas-tools:
 	@gcc -O3 bin/ctx_cleaner.c -o bin/ctx_cleaner
 	@gcc -O3 bin/ram_disk_accelerator.c -o bin/ram_disk_accelerator
 	@gcc -O3 bin/parallel_pkg_pull.c -o bin/parallel_pkg_pull -lcurl
+	@gcc -O3 bin/ccache_manager.c -o bin/ccache_manager
