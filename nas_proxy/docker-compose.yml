@@ -63,7 +63,7 @@ services:
   blocker:
     container_name: nas_blocker
     image: ubuntu:24.04
-    network_mode: "host" # Crucial for Raw Socket access
+    network_mode: 'host' # Crucial for Raw Socket access
     volumes:
       - '.:/app'
     working_dir: /app

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Tianditu Hybrid Accelerator",
-  "version": "1.9",
-  "description": "Fast multi-source proxy failover and session cleaning with NAS Tile Cache.",
+  "version": "2.0",
+  "description": "Proxy-based access to Tianditu maps with header spoofing and geo-bypass.",
   "permissions": [
     "proxy",
     "storage",
@@ -10,6 +10,7 @@
     "offscreen",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
+    "declarativeNetRequestWithHostAccess",
     "cookies",
     "browsingData"
   ],
@@ -20,8 +21,11 @@
     "https://*.databay.com/*",
     "*://*.tianditu.gov.cn/*",
     "*://*.tianditu.cn/*",
+    "*://tianditu.gov.cn/*",
+    "*://tianditu.cn/*",
     "http://10.0.0.169:8082/*",
-    "http://10.0.0.169:8000/*"
+    "http://10.0.0.169:8000/*",
+    "http://10.0.0.169:8080/*"
   ],
   "background": {
     "service_worker": "background.js"

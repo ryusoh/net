@@ -3,52 +3,99 @@
     "id": 1,
     "priority": 1,
     "action": {
-      "type": "redirect",
-      "redirect": {
-        "transform": {
-          "scheme": "http",
-          "host": "10.0.0.169",
-          "port": "8082",
-          "queryTransform": {
-            "addOrReplaceParams": [
-              {
-                "key": "url",
-                "value": "==url=="
-              }
-            ]
-          }
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Accept-Language",
+          "operation": "set",
+          "value": "zh-CN,zh;q=0.9,en;q=0.8"
+        },
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.tianditu.gov.cn/"
         }
-      }
+      ]
     },
     "condition": {
-      "urlFilter": "|http*://*.tianditu.gov.cn/*/tile*",
-      "resourceTypes": ["image"]
+      "urlFilter": "*tianditu.gov.cn*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "stylesheet",
+        "script",
+        "image",
+        "xmlhttprequest",
+        "other",
+        "font",
+        "media"
+      ]
     }
   },
   {
     "id": 2,
     "priority": 1,
     "action": {
-      "type": "redirect",
-      "redirect": {
-        "transform": {
-          "scheme": "http",
-          "host": "10.0.0.169",
-          "port": "8082",
-          "queryTransform": {
-            "addOrReplaceParams": [
-              {
-                "key": "url",
-                "value": "==url=="
-              }
-            ]
-          }
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Accept-Language",
+          "operation": "set",
+          "value": "zh-CN,zh;q=0.9,en;q=0.8"
+        },
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.tianditu.cn/"
         }
-      }
+      ]
     },
     "condition": {
-      "urlFilter": "|http*://*.tianditu.cn/*/tile*",
-      "resourceTypes": ["image"]
+      "urlFilter": "*tianditu.cn*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "stylesheet",
+        "script",
+        "image",
+        "xmlhttprequest",
+        "other",
+        "font",
+        "media"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 2,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        {
+          "header": "X-Frame-Options",
+          "operation": "remove"
+        },
+        {
+          "header": "Content-Security-Policy",
+          "operation": "remove"
+        },
+        {
+          "header": "X-Content-Type-Options",
+          "operation": "remove"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "*tianditu*",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "stylesheet",
+        "script",
+        "image",
+        "xmlhttprequest",
+        "other"
+      ]
     }
   }
 ]

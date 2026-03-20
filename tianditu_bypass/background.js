@@ -31,19 +31,11 @@ function updateProxySettings(server, fallbackServer = null) {
       data: `
         function FindProxyForURL(url, host) {
           if (shExpMatch(host, "*.tianditu.gov.cn") || shExpMatch(host, "*.tianditu.cn") || host === "tianditu.gov.cn" || host === "tianditu.cn") {
-            // Check for tile requests (usually end in image extensions) to use local cache
-            if (shExpMatch(url, "*.[png|jpg|jpeg|webp]*")) {
-               var cacheUrl = "${NAS_IP}:8082";
-               return "PROXY " + cacheUrl + "; DIRECT";
-            }
-            // For JSON/Styles, we prioritize the fallback if available
-            if (url.indexOf(".json") !== -1 && "${fallbackServer}" !== "null") {
-               return "${fallbackServer}; DIRECT";
-            }
-            // For all else, try primary then fallback then direct
+            // All tianditu traffic MUST go through proxy - never fall back to DIRECT
+            // DIRECT from US IP will be geo-blocked
             var chain = "${server}";
             if ("${fallbackServer}" !== "null") chain += "; ${fallbackServer}";
-            return chain + "; DIRECT";
+            return chain;
           }
           return "DIRECT";
         }
@@ -52,7 +44,9 @@ function updateProxySettings(server, fallbackServer = null) {
   };
 
   chrome.proxy.settings.set({ value: config, scope: 'regular' }, () => {
-    console.log(`[Tianditu] Active Chain: ${server} -> Fallback: ${fallbackServer} -> DIRECT`);
+    console.log(
+      `[Tianditu] Active Chain: ${server} -> Fallback: ${fallbackServer} (no DIRECT fallback)`
+    );
     chrome.action.setBadgeText({ text: 'ON' });
     chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' });
   });
@@ -206,5 +200,28 @@ chrome.alarms.onAlarm.addListener((a) => {
     refreshProxy();
   }
 });
-chrome.runtime.onInstalled.addListener(refreshProxy);
-chrome.runtime.onStartup.addListener(refreshProxy);
+// Clear tianditu cookies and cache on startup to remove any geo-block state
+function clearTiandituData() {
+  chrome.cookies.getAll({ domain: 'tianditu.gov.cn' }, (cookies) => {
+    for (const cookie of cookies) {
+      const url = `http${cookie.secure ? 's' : ''}://${cookie.domain.replace(/^\./, '')}${cookie.path}`;
+      chrome.cookies.remove({ url, name: cookie.name });
+    }
+  });
+  chrome.cookies.getAll({ domain: 'tianditu.cn' }, (cookies) => {
+    for (const cookie of cookies) {
+      const url = `http${cookie.secure ? 's' : ''}://${cookie.domain.replace(/^\./, '')}${cookie.path}`;
+      chrome.cookies.remove({ url, name: cookie.name });
+    }
+  });
+  console.log('[Tianditu] Cleared tianditu cookies');
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  clearTiandituData();
+  refreshProxy();
+});
+chrome.runtime.onStartup.addListener(() => {
+  clearTiandituData();
+  refreshProxy();
+});
