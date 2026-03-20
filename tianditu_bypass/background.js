@@ -8,6 +8,11 @@ const NAS_IP = '10.0.0.169';
 const SOURCES = [
   { name: 'Home NAS Proxy', url: `http://${NAS_IP}:8080`, type: 'nas' },
   {
+    name: 'NAS Scraped Proxies',
+    url: `http://${NAS_IP}:8000/proxies.html`,
+    type: 'freeproxyworld'
+  },
+  {
     name: 'freeproxy.world',
     url: 'https://www.freeproxy.world/?type=&anonymity=&country=CN&speed=1500',
     type: 'freeproxyworld'
