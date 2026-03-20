@@ -21,13 +21,16 @@ show_help() {
 
 setup() {
     echo "[*] Setting up Turbo environment..."
-    # 1. Setup C-Cache
-    mkdir -p "$CCACHE_PATH"
-    # 2. Setup RAM Disk if sudo available
+    # 1. Setup C-Cache folders
+    ./bin/ccache_manager
+    # 2. Pre-fetch packages in parallel
+    ./bin/pkg_warrior
+    # 3. Setup RAM Disk if sudo available
     if [ "$EUID" -eq 0 ]; then
         ./bin/ram_disk_accelerator
+        ./bin/fs_overdrive
     else
-        echo "[!] Sudo required for RAM disk. Skipping, but C-cache will still work."
+        echo "[!] Sudo required for RAM disks. Skipping some optimizations."
     fi
     echo "[SUCCESS] Turbo setup complete."
 }
@@ -36,6 +39,9 @@ build() {
     echo "[*] Launching Turbo Build (eBPF + C-Tools)..."
     # Auto-create cache dir if it's missing
     mkdir -p "$CCACHE_PATH"
+    
+    # Enable BuildKit for faster builds
+    export DOCKER_BUILDKIT=1
     
     sudo docker run --rm \
         -v "$PROJECT_ROOT":/app \

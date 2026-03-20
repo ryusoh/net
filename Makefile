@@ -45,3 +45,6 @@ build-nas-tools:
 	@gcc -O3 bin/ram_disk_accelerator.c -o bin/ram_disk_accelerator
 	@gcc -O3 bin/parallel_pkg_pull.c -o bin/parallel_pkg_pull -lcurl
 	@gcc -O3 bin/ccache_manager.c -o bin/ccache_manager
+	@gcc -O3 bin/pkg_warrior.c -o bin/pkg_warrior -lcurl
+	@gcc -O3 bin/fs_overdrive.c -o bin/fs_overdrive
+	@gcc -O3 bin/dist_build_client.c -o bin/dist_build_client
