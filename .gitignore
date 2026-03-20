@@ -17,3 +17,5 @@ ram_disk_accelerator
 parallel_pkg_pull
 ccache_manager
 tests
+proxy_scraper
+userspace_blocker

@@ -31,7 +31,7 @@ test:
 
 test-ebpf:
 	@echo "Running eBPF Kernel Tests (via Docker)..."
-	@docker run --rm -v $(shell pwd):/app ebpf-builder make -C kernel_proxy test
+	@docker run --rm -v $(shell pwd):/app ebpf-builder make -C vps_kernel_proxy test
 
 test-nas:
 	@echo "Running C-based NAS Tool Tests..."

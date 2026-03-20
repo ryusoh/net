@@ -41,7 +41,7 @@ build() {
         -v "$PROJECT_ROOT":/app \
         -v "$CCACHE_PATH":/root/.ccache \
         -e CCACHE_DIR=/root/.ccache \
-        ebpf-builder /bin/bash -c "make -C kernel_proxy all && make build-nas-tools"
+        ebpf-builder /bin/bash -c "make -C vps_kernel_proxy all && make build-nas-tools"
 }
 
 scrub() {
