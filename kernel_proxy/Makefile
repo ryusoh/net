@@ -1,19 +1,25 @@
 # Makefile for compiling eBPF programs
 CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
-BPF_OBJ = hello.bpf.o
+BPF_OBJ = hello.bpf.o adblock.bpf.o redirect.bpf.o reputation.bpf.o dns_filter.bpf.o
 
 # Search paths for headers
-INCLUDES := -I/usr/include -I/usr/include/x86_64-linux-gnu
+INCLUDES := -I/usr/include -I/usr/include/x86_64-linux-gnu -I/usr/include/$(shell uname -m)-linux-gnu
+
+# Automatically detect architecture for eBPF target
+ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/')
 
 # Clang flags for BPF target
-CFLAGS := -g -O2 -target bpf -D__TARGET_ARCH_x86 $(INCLUDES)
+CFLAGS := -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES)
 
 all: $(BPF_OBJ)
 
 $(BPF_OBJ): %.o: %.c
 	$(CLANG) $(CFLAGS) -c $< -o $@
 	$(LLVM_STRIP) -g $@
+
+test: all
+	python3 test_ebpf.py
 
 clean:
 	rm -f $(BPF_OBJ)

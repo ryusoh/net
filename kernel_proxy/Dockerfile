@@ -11,7 +11,6 @@ RUN apt update && apt install -y \
     llvm \
     libelf-dev \
     libbpf-dev \
-    gcc-multilib \
     m4 \
     pkg-config \
     iproute2 \
