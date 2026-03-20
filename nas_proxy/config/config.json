@@ -4,6 +4,13 @@
     "error": "/var/log/v2ray/error.log",
     "loglevel": "info"
   },
+  "dns": {
+    "servers": [
+      "223.5.5.5",
+      "119.29.29.29",
+      "8.8.8.8"
+    ]
+  },
   "inbounds": [
     {
       "port": 1080,
@@ -34,7 +41,8 @@
       },
       "streamSettings": {
         "sockopt": {
-          "connectionReuse": true
+          "connectionReuse": true,
+          "tcpFastOpen": true
         }
       },
       "tag": "china-proxy"
