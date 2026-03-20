@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# tm-repair: Automatically repair a corrupted Time Machine sparsebundle on a NAS.
+# This script should be run on your Mac.
+
+# 1. Locate Sparsebundles on mounted network shares
+SEARCH_DIR="/Volumes"
+BUNDLES=($(find "$SEARCH_DIR" -name "*.sparsebundle" -maxdepth 2 2>/dev/null))
+
+if [ ${#BUNDLES[@]} -eq 0 ]; then
+    echo "❌ No .sparsebundle found in $SEARCH_DIR. Please ensure your NAS share is mounted."
+    exit 1
+fi
+
+# If multiple found, pick the first or let user choose (simplified for one-command use)
+BUNDLE="${BUNDLES[0]}"
+echo "🔍 Found backup: $BUNDLE"
+
+# 2. Make it editable (Clear immutable flag if set)
+echo "🔓 Removing immutable flags..."
+chflags -R nouchg "$BUNDLE" 2>/dev/null
+
+# 3. Modify VerificationState in the .plist
+# VerificationState 2 = Corrupted, 0 = Healthy (ready for check)
+PLIST="$BUNDLE/com.apple.TimeMachine.MachineID.plist"
+if [ -f "$PLIST" ]; then
+    echo "📝 Resetting VerificationState in $PLIST..."
+    # Backup the plist
+    cp "$PLIST" "$PLIST.bak"
+    # Use plutil to change the value (native macOS tool)
+    plutil -replace VerificationState -integer 0 "$PLIST"
+else
+    echo "⚠️ Warning: MachineID.plist not found. Proceeding anyway..."
+fi
+
+# 4. Attach the sparsebundle (without mounting partitions)
+echo "🔌 Attaching image (this may take a minute)..."
+ATTACH_OUTPUT=$(hdiutil attach -nomount -noverify -noautofsck "$BUNDLE")
+DISK_ID=$(echo "$ATTACH_OUTPUT" | grep -o "/dev/disk[0-9]*" | head -n 1)
+
+if [ -z "$DISK_ID" ]; then
+    echo "❌ Failed to attach image."
+    exit 1
+fi
+echo "✅ Attached as $DISK_ID"
+
+# 5. Determine if it's APFS or HFS+ and run repair
+# Look for the Apple_APFS or Apple_HFS slice
+SLICE=$(diskutil list "$DISK_ID" | grep -E "Apple_APFS|Apple_HFS" | awk '{print $NF}' | head -n 1)
+
+if [ -z "$SLICE" ]; then
+    echo "⚠️ Could not identify partition type. Running generic fsck on $DISK_ID..."
+    fsck_hfs -fy "$DISK_ID"
+else
+    echo "🛠 Running repair on $SLICE..."
+    if diskutil list "$DISK_ID" | grep -q "Apple_APFS"; then
+        sudo fsck_apfs -y "/dev/$SLICE"
+    else
+        sudo fsck_hfs -fy "/dev/$SLICE"
+    fi
+fi
+
+# 6. Eject
+echo "⏹ Ejecting $DISK_ID..."
+hdiutil detach "$DISK_ID"
+
+echo "🎉 Repair complete! Try running Time Machine again."
