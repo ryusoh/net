@@ -21,11 +21,17 @@ show_help() {
 
 setup() {
     echo "[*] Setting up Turbo environment..."
-    # 1. Setup C-Cache folders
+    # 1. Bootstrap: Build the accelerators using the container since host has no gcc
+    if [ ! -f "./bin/dependency_sideloader" ]; then
+        echo "[*] Bootstrapping accelerators via Docker..."
+        sudo docker run --rm -v "$(pwd)":/app ebpf-builder /bin/bash -c "make build-nas-tools"
+    fi
+
+    # 2. Setup C-Cache folders
     ./bin/ccache_manager
-    # 2. Pre-fetch packages in parallel
+    # 3. Pre-fetch packages in parallel
     ./bin/pkg_warrior
-    # 3. Setup RAM Disk if sudo available
+    # 4. Setup RAM Disk if sudo available
     if [ "$EUID" -eq 0 ]; then
         ./bin/ram_disk_accelerator
         ./bin/fs_overdrive
@@ -42,6 +48,12 @@ build() {
     
     # Enable BuildKit for faster builds
     export DOCKER_BUILDKIT=1
+
+    # Ensure sideloader is built
+    if [ ! -f "./bin/dependency_sideloader" ]; then
+        echo "[!] Accelerators not found. Running bootstrap..."
+        sudo docker run --rm -v "$(pwd)":/app ebpf-builder /bin/bash -c "make build-nas-tools"
+    fi
 
     # Sideload missing dependencies instantly
     ./bin/dependency_sideloader
