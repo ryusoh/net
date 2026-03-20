@@ -21,6 +21,8 @@ cd "$PROJECT_ROOT/nas_proxy"
 ./proxy_scraper
 
 if [ $? -eq 0 ]; then
+    # Ensure the file is readable by the Python script
+    chmod 644 proxies.html
     echo "[*] Injecting fresh proxies into V2Ray config..."
     python3 ./updater.py
     echo "[SUCCESS] System updated at $(date)"

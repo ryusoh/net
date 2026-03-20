@@ -18,13 +18,15 @@ def update_v2ray_config():
         print(f"[-] {PROXY_FILE} not found. Run scraper first.")
         return
 
-    # 1. Parse raw IP:Port list
+    # 1. Parse raw IP:Port list using Regex for robustness
+    import re
     proxies = []
     with open(PROXY_FILE, 'r') as f:
-        for line in f:
-            parts = line.strip().split(':')
-            if len(parts) == 2:
-                proxies.append({"address": parts[0], "port": int(parts[1])})
+        content = f.read()
+        # Pattern for IP:Port
+        matches = re.findall(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', content)
+        for ip, port in matches:
+            proxies.append({"address": ip, "port": int(port)})
 
     if not proxies:
         print("[-] No valid proxies found in file.")
