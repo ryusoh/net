@@ -235,15 +235,15 @@ async function fetchFromSource(source) {
 }
 
 /**
- * Notifies the Home NAS of a new high-speed Chinese proxy.
+ * Notifies the Home NAS of the top discovered Chinese proxies.
  */
-async function notifyNAS(ip, port) {
-  console.log(`[Tianditu] Notifying NAS of new exit node: ${ip}:${port}`);
+async function notifyNAS(proxies) {
+  console.log(`[Tianditu] Notifying NAS of ${proxies.length} top exit nodes.`);
   try {
     await fetch('http://10.0.0.169:8081', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ip, port })
+      body: JSON.stringify({ proxies })
     });
   } catch (e) {
     console.warn('[Tianditu] Failed to notify NAS. Is updater.py running?', e.message);
@@ -271,8 +271,8 @@ async function refreshProxy() {
     if (fetchedProxies.length > 0) {
       const sorted = fetchedProxies.sort((a, b) => a.speed - b.speed);
       proxyList = [nasProxy, ...sorted];
-      // Notify NAS of the absolute best exit node we found
-      notifyNAS(sorted[0].ip, sorted[0].port);
+      // Notify NAS of the top 3 best exit nodes we found
+      notifyNAS(sorted.slice(0, 3));
     } else {
       proxyList = [nasProxy];
     }

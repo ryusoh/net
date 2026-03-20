@@ -23,20 +23,29 @@ class ConfigUpdater(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
 
-        new_ip = data.get('ip')
-        new_port = int(data.get('port'))
+        proxies = data.get('proxies', [])
+        if not proxies:
+            # Fallback for old single-proxy format if needed
+            proxies = [data]
 
-        print(f"[Updater] Received new proxy: {new_ip}:{new_port}")
+        print(f"[Updater] Received {len(proxies)} proxies for update.")
 
         # Update the JSON config
         with open(CONFIG_PATH, 'r') as f:
             config = json.load(f)
 
-        # Update the china-proxy outbound
+        # Build the new server list
+        new_servers = []
+        for p in proxies:
+            new_servers.append({
+                "address": p.get('ip'),
+                "port": int(p.get('port'))
+            })
+
+        # Update the china-proxy outbound with multiple servers
         for outbound in config['outbounds']:
             if outbound.get('tag') == 'china-proxy':
-                outbound['settings']['servers'][0]['address'] = new_ip
-                outbound['settings']['servers'][0]['port'] = new_port
+                outbound['settings']['servers'] = new_servers
 
         with open(CONFIG_PATH, 'w') as f:
             json.dump(config, f, indent=2)
@@ -45,7 +54,7 @@ class ConfigUpdater(BaseHTTPRequestHandler):
         subprocess.run(["docker", "restart", "nas_proxy"])
 
         self._set_headers()
-        self.wfile.write(b"Config Updated and Proxy Restarted")
+        self.wfile.write(b"Config Updated with Multiple Servers and Proxy Restarted")
 
 if __name__ == "__main__":
     print("Proxy Config Updater listening on port 8081...")
