@@ -11,7 +11,6 @@ SCRAPER_TARGET = proxy_scraper
 LIB_TARGET = libtilestorage.so
 
 all: $(TARGET) $(LIB_TARGET) $(TUNNEL_TARGET) $(SHM_TARGET) $(NEON_TARGET) $(SPOOFER_TARGET) $(SCRAPER_TARGET)
- $(SCRAPER_TARGET)
 
 $(TARGET): tile_storage.c tile_fetcher.c
 	$(CC) $(CFLAGS) -DBUILD_TILE_STORAGE_TEST -o $(TARGET) tile_storage.c tile_fetcher.c $(LDFLAGS)

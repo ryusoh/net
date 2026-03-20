@@ -22,21 +22,28 @@ load_prog() {
     local p=$1
     local i=$2
     echo "[+] Loading $p onto $i..."
-    # 1. Try modern syntax
-    ip link set dev "$i" xdp obj "$p" sec xdp 2>/dev/null || \
-    # 2. Try generic mode syntax
-    ip link set dev "$i" xdp generic obj "$p" sec xdp 2>/dev/null || \
-    # 3. Try alternative syntax (no dev keyword)
-    ip link set "$i" xdp obj "$p" 2>/dev/null || \
-    # 4. Final attempt with verbose error
-    ip link set dev "$i" xdp object "$p" section xdp
     
-    if [ $? -eq 0 ]; then
-        echo "[SUCCESS] $p is now active on $i."
-    else
-        echo "[ERROR] Failed to load $p. Your NAS 'ip' command might not support XDP."
-        echo "Try checking if 'bpftool' can load it instead."
+    # 1. Try standard ip link commands
+    if ip link set dev "$i" xdp obj "$p" sec xdp 2>/dev/null || \
+       ip link set dev "$i" xdp generic obj "$p" sec xdp 2>/dev/null; then
+        echo "[SUCCESS] $p active on $i (via ip-link)."
+        return 0
     fi
+
+    # 2. Advanced Fallback: Use bpftool (Often works when ip-link fails)
+    echo "[!] ip-link failed. Attempting bpftool fallback..."
+    local prog_path="/sys/fs/bpf/xdp_$i"
+    rm -f "$prog_path" # Clean old pin
+    
+    if bpftool prog load "$p" "$prog_path" type xdp 2>/dev/null; then
+        if bpftool net attach xdp pinned "$prog_path" dev "$i" 2>/dev/null; then
+            echo "[SUCCESS] $p active on $i (via bpftool)."
+            return 0
+        fi
+    fi
+
+    echo "[ERROR] All load methods failed. Your NAS might have XDP disabled in the kernel."
+    echo "Check 'zcat /proc/config.gz | grep XDP' if possible."
 }
 
 unload_prog() {
