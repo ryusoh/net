@@ -22,9 +22,15 @@ class TestEBPFPrograms(unittest.TestCase):
         """Verify that all programs compiled without errors."""
         self.assertEqual(self.make_result.returncode, 0, f"Compilation failed:\n{self.make_result.stderr}")
         
-        expected_files = ["hello.bpf.o", "adblock.bpf.o", "redirect.bpf.o", "reputation.bpf.o", "dns_filter.bpf.o", "sni_filter.bpf.o"]
+        expected_files = ["hello.bpf.o", "adblock.bpf.o", "redirect.bpf.o", "reputation.bpf.o", "dns_filter.bpf.o", "sni_filter.bpf.o", "bloom_filter.bpf.o"]
         for f in expected_files:
             self.assertTrue(os.path.exists(f), f"Expected binary {f} was not generated.")
+
+    def test_bloom_filter_maps(self):
+        """Verify that the Bloom filter has its specialized map."""
+        output = subprocess.check_output("bpftool btf dump file bloom_filter.bpf.o", shell=True).decode()
+        self.assertIn("bloom_filter", output, "Map 'bloom_filter' missing from bloom_filter.bpf.o BTF")
+        self.assertIn("confirmed_blocks", output, "Map 'confirmed_blocks' missing from bloom_filter.bpf.o BTF")
 
     def test_sni_filter_maps(self):
         """Verify that the SNI filter has its blacklist map."""
@@ -53,10 +59,11 @@ class TestEBPFPrograms(unittest.TestCase):
         Runs a 'dry-run' verification using bpftool. 
         Note: This requires a Linux environment with BTF support.
         """
+        expected_files = ["hello.bpf.o", "adblock.bpf.o", "redirect.bpf.o", "reputation.bpf.o", "dns_filter.bpf.o", "sni_filter.bpf.o", "bloom_filter.bpf.o"]
         # We try to dump the BTF (kernel type info) - if this works, the ELF is valid.
-        for f in ["adblock.bpf.o", "dns_filter.bpf.o"]:
+        for f in expected_files:
             res = subprocess.run(["bpftool", "btf", "dump", "file", f], capture_output=True)
-            self.assertEqual(res.returncode, 0, f"BTF verification failed for {f}")
+            self.assertEqual(res.returncode, 0, f"BTF verification failed for {f}: {res.stderr.decode()}")
 
 if __name__ == "__main__":
     unittest.main()

@@ -30,5 +30,5 @@ test:
 	@npm test
 
 test-ebpf:
-	@echo "Running eBPF Kernel Tests..."
-	@cd kernel_proxy && make test
+	@echo "Running eBPF Kernel Tests (via Docker)..."
+	@docker run --rm -v $(shell pwd):/app ebpf-builder make -C kernel_proxy test
