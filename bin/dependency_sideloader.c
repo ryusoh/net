@@ -41,7 +41,7 @@ int main() {
         const char *headers[] = {
             "pcap.h", "pcap/pcap.h", "pcap/bpf.h", "pcap/dlt.h", 
             "pcap/funcattrs.h", "pcap/can_socket.h", "pcap/compiler-tests.h",
-            "pcap-inttypes.h", "pcap/socket.h", "pcap/usb.h", "pcap/nflog.h",
+            "pcap/pcap-inttypes.h", "pcap/socket.h", "pcap/usb.h", "pcap/nflog.h",
             "pcap/bluetooth.h"
         };
 
