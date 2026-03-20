@@ -11,6 +11,7 @@ RUN apt update && apt install -y \
     llvm \
     libelf-dev \
     libbpf-dev \
+    libcurl4-openssl-dev \
     m4 \
     pkg-config \
     iproute2 \
