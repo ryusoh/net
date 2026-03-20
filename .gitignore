@@ -7,3 +7,4 @@ nas_proxy/tiles/
 *.bin
 *.so
 *.dylib
+tile_storage
