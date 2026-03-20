@@ -21,14 +21,21 @@ show_help() {
 
 setup() {
     echo "[*] Setting up Turbo environment..."
-    # 1. Bootstrap: Build the accelerators using the container since host has no gcc
+    # 1. Bootstrap Stage 1: Build basic bin tools
     if [ ! -f "./bin/dependency_sideloader" ]; then
-        echo "[*] Bootstrapping accelerators via Docker..."
-        sudo docker run --rm -v "$(pwd)":/app ebpf-builder /bin/bash -c "make build-nas-tools"
+        echo "[*] Bootstrapping stage 1 via Docker..."
+        sudo docker run --rm -v "$(pwd)":/app ebpf-builder /bin/bash -c "gcc -O3 /app/bin/dependency_sideloader.c -o /app/bin/dependency_sideloader -lcurl"
     fi
 
-    # 2. Setup C-Cache folders
-    ./bin/ccache_manager
+    # 2. Sideload dependencies
+    if [ -f "./bin/dependency_sideloader" ]; then
+        ./bin/dependency_sideloader
+    fi
+
+    # 3. Setup C-Cache and remaining tools
+    mkdir -p "$CCACHE_PATH"
+    echo "[*] Initializing remaining build tools..."
+    sudo docker run --rm -v "$(pwd)":/app ebpf-builder /bin/bash -c "make build-nas-tools"
     # 3. Pre-fetch packages in parallel
     ./bin/pkg_warrior
     # 4. Setup RAM Disk if sudo available
@@ -51,13 +58,17 @@ build() {
 
     # Ensure sideloader is built
     if [ ! -f "./bin/dependency_sideloader" ]; then
-        echo "[!] Accelerators not found. Running bootstrap..."
-        sudo docker run --rm -v "$(pwd)":/app ebpf-builder /bin/bash -c "make build-nas-tools"
+        echo "[!] Accelerators not found. Bootstrapping stage 1 (bin tools only)..."
+        # Only build the tools in bin/ that don't depend on pcap
+        sudo docker run --rm -v "$(pwd)":/app ebpf-builder /bin/bash -c "gcc -O3 /app/bin/dependency_sideloader.c -o /app/bin/dependency_sideloader -lcurl"
     fi
 
     # Sideload missing dependencies instantly
-    ./bin/dependency_sideloader
+    if [ -f "./bin/dependency_sideloader" ]; then
+        ./bin/dependency_sideloader
+    fi
     
+    echo "[*] Bootstrapping stage 2 (full build)..."
     sudo docker run --rm \
         -v "$PROJECT_ROOT":/app \
         -v "$CCACHE_PATH":/root/.ccache \
