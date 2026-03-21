@@ -97,47 +97,5 @@
         "other"
       ]
     }
-  },
-  {
-    "id": 10,
-    "priority": 10,
-    "action": {
-      "type": "redirect",
-      "redirect": {
-        "regexSubstitution": "http://10.0.0.169:8082/?url=\\0"
-      }
-    },
-    "condition": {
-      "regexFilter": "^https?://[^/]*tianditu\\.gov\\.cn/.*/tile.*$",
-      "resourceTypes": ["image", "xmlhttprequest"]
-    }
-  },
-  {
-    "id": 11,
-    "priority": 10,
-    "action": {
-      "type": "redirect",
-      "redirect": {
-        "regexSubstitution": "http://10.0.0.169:8082/?url=\\0"
-      }
-    },
-    "condition": {
-      "regexFilter": "^https?://[^/]*tianditu\\.cn/.*/tile.*$",
-      "resourceTypes": ["image", "xmlhttprequest"]
-    }
-  },
-  {
-    "id": 12,
-    "priority": 10,
-    "action": {
-      "type": "redirect",
-      "redirect": {
-        "regexSubstitution": "http://10.0.0.169:8082/?url=\\0"
-      }
-    },
-    "condition": {
-      "regexFilter": "^https?://[^/]*tianditu\\.gov\\.cn/.*\\.(png|jpg|jpeg|webp|pbf)([?#].*)?$",
-      "resourceTypes": ["image", "xmlhttprequest"]
-    }
   }
 ]
