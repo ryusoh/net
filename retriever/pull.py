@@ -36,7 +36,7 @@ def pull_extension(extension_id):
     latest_version = sorted(versions)[-1]
     src_path = os.path.join(src_base, latest_version)
     
-    # Target directory under 'net/'
+    # Target directory: use camelCased extension name
     # Get the name of the extension if possible
     manifest_path = os.path.join(src_path, "manifest.json")
     target_name = extension_id
@@ -44,20 +44,29 @@ def pull_extension(extension_id):
         try:
             with open(manifest_path, 'r') as f:
                 manifest = json.load(f)
-                name = manifest.get('name', extension_id).lower().replace(' ', '_')
-                # Keep it clean
-                target_name = "".join([c for c in name if c.isalnum() or c == '_'])
+                name = manifest.get('name', extension_id)
+                # Remove common prefixes/suffixes and punctuation
+                name = name.replace(':', '').replace('-', ' ')
+                # Convert to camelCase: "My Extension Name" -> "myExtensionName"
+                words = name.split()
+                if len(words) > 1:
+                    target_name = words[0].lower() + ''.join(word.capitalize() for word in words[1:])
+                else:
+                    target_name = name.lower()
+                # Keep only alphanumeric
+                target_name = "".join([c for c in target_name if c.isalnum()])
         except:
             pass
 
-    # Ensure we are running from project root or net/
+    # Ensure we are running from project root or retriever/
     cwd = os.getcwd()
     if os.path.basename(cwd) == 'retriever':
-        target_dir = os.path.abspath(os.path.join(cwd, "../", target_name))
-    elif os.path.basename(cwd) == 'net':
-        target_dir = os.path.abspath(os.path.join(cwd, target_name))
+        # Running from retriever/, put in parent directory
+        parent_dir = os.path.dirname(cwd)
+        target_dir = os.path.abspath(os.path.join(parent_dir, target_name))
     else:
-        target_dir = os.path.abspath(os.path.join(cwd, "net", target_name))
+        # Running from anywhere else, put in current directory
+        target_dir = os.path.abspath(os.path.join(cwd, target_name))
 
     print(f"Pulling {extension_id} (version {latest_version}) into {target_dir}...")
     
