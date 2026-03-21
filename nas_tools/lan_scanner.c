@@ -51,15 +51,113 @@
 typedef struct {
     char ip[16];
     char mac[18];
+    char vendor[32];
     char hostname[256];
     int  alive;
     double rtt_ms;      /* round-trip time in ms */
 } Host;
 
+/* --- OUI vendor lookup (first 3 bytes of MAC) --- */
+
+typedef struct { unsigned char oui[3]; const char *vendor; } OUI_Entry;
+
+static const OUI_Entry oui_table[] = {
+    /* Apple */
+    {{0x00,0x1B,0x63}, "Apple"},  {{0x3C,0x22,0xFB}, "Apple"},
+    {{0xAC,0xDE,0x48}, "Apple"},  {{0xF0,0x18,0x98}, "Apple"},
+    {{0x14,0x98,0x77}, "Apple"},  {{0xA4,0x83,0xE7}, "Apple"},
+    {{0xDC,0xA9,0x04}, "Apple"},  {{0x88,0x66,0xA3}, "Apple"},
+    {{0x78,0x7E,0x61}, "Apple"},  {{0xBC,0x52,0xB7}, "Apple"},
+    {{0x38,0xF9,0xD3}, "Apple"},  {{0xF4,0x5C,0x89}, "Apple"},
+    {{0xC8,0x69,0xCD}, "Apple"},  {{0xD0,0x81,0x7A}, "Apple"},
+    {{0x70,0xDE,0xE2}, "Apple"},  {{0xA8,0x5C,0x2C}, "Apple"},
+    {{0x98,0x01,0xA7}, "Apple"},  {{0x04,0x26,0x65}, "Apple"},
+    {{0x1C,0x36,0xBB}, "Apple"},  {{0x54,0x26,0x96}, "Apple"},
+    /* Samsung */
+    {{0x00,0x1A,0x8A}, "Samsung"},  {{0xCC,0x07,0xAB}, "Samsung"},
+    {{0xD0,0x22,0xBE}, "Samsung"},  {{0x34,0x23,0xBA}, "Samsung"},
+    {{0x94,0x35,0x0A}, "Samsung"},  {{0xBC,0x72,0xB1}, "Samsung"},
+    {{0x08,0xD4,0x6A}, "Samsung"},  {{0x78,0x47,0x1D}, "Samsung"},
+    {{0xF4,0x7B,0x09}, "Samsung"},  {{0xC0,0xBD,0xD1}, "Samsung"},
+    {{0xA0,0x82,0x1F}, "Samsung"},  {{0xEC,0x1F,0x72}, "Samsung"},
+    /* Google/Pixel */
+    {{0x3C,0x5A,0xB4}, "Google"},  {{0x54,0x60,0x09}, "Google"},
+    {{0xF4,0xF5,0xE8}, "Google"},  {{0x94,0xEB,0x2C}, "Google"},
+    /* Huawei */
+    {{0x00,0x9A,0xCD}, "Huawei"},  {{0x48,0x46,0xFB}, "Huawei"},
+    {{0xE0,0x24,0x7F}, "Huawei"},  {{0x88,0x28,0xB3}, "Huawei"},
+    {{0xCC,0xA2,0x23}, "Huawei"},  {{0x04,0xF9,0x38}, "Huawei"},
+    /* Xiaomi */
+    {{0x28,0x6C,0x07}, "Xiaomi"},  {{0x64,0xCC,0x2E}, "Xiaomi"},
+    {{0x78,0x11,0xDC}, "Xiaomi"},  {{0xFC,0x64,0xBA}, "Xiaomi"},
+    {{0x50,0x64,0x2B}, "Xiaomi"},  {{0x7C,0x1D,0xD9}, "Xiaomi"},
+    /* Intel */
+    {{0x00,0x1B,0x21}, "Intel"},  {{0x3C,0x97,0x0E}, "Intel"},
+    {{0x48,0x51,0xB7}, "Intel"},  {{0x80,0x86,0xF2}, "Intel"},
+    {{0x8C,0x8D,0x28}, "Intel"},  {{0xA4,0xBB,0x6D}, "Intel"},
+    /* Realtek (common on PCs/NICs) */
+    {{0x00,0xE0,0x4C}, "Realtek"},  {{0x52,0x54,0x00}, "Realtek/QEMU"},
+    /* TP-Link */
+    {{0x50,0xC7,0xBF}, "TP-Link"},  {{0xEC,0x08,0x6B}, "TP-Link"},
+    {{0x60,0xE3,0x27}, "TP-Link"},  {{0x14,0xEB,0xB6}, "TP-Link"},
+    {{0xB0,0x4E,0x26}, "TP-Link"},  {{0xC0,0x06,0xC3}, "TP-Link"},
+    /* ASUS */
+    {{0x00,0x1A,0x92}, "ASUS"},  {{0xF4,0x6D,0x04}, "ASUS"},
+    {{0x2C,0x56,0xDC}, "ASUS"},  {{0x04,0x92,0x26}, "ASUS"},
+    /* Netgear */
+    {{0x00,0x1E,0x2A}, "Netgear"},  {{0xC4,0x04,0x15}, "Netgear"},
+    {{0x28,0xC6,0x8E}, "Netgear"},  {{0xA4,0x2B,0x8C}, "Netgear"},
+    /* D-Link */
+    {{0x00,0x1C,0xF0}, "D-Link"},  {{0xCC,0xB2,0x55}, "D-Link"},
+    /* Synology */
+    {{0x00,0x11,0x32}, "Synology"},
+    /* Raspberry Pi */
+    {{0xB8,0x27,0xEB}, "Raspberry Pi"},  {{0xDC,0xA6,0x32}, "Raspberry Pi"},
+    {{0xE4,0x5F,0x01}, "Raspberry Pi"},
+    /* Dell */
+    {{0x00,0x14,0x22}, "Dell"},  {{0xF8,0xDB,0x88}, "Dell"},
+    {{0x34,0x17,0xEB}, "Dell"},
+    /* Lenovo */
+    {{0x00,0x0A,0x27}, "Lenovo"},  {{0x28,0xD2,0x44}, "Lenovo"},
+    {{0x98,0xFA,0x9B}, "Lenovo"},
+    /* Microsoft (Surface, Xbox) */
+    {{0x28,0x18,0x78}, "Microsoft"},  {{0x7C,0x1E,0x52}, "Microsoft"},
+    {{0xC8,0x3F,0x26}, "Microsoft"},
+    /* Cisco/Linksys */
+    {{0x00,0x1A,0xA2}, "Cisco"},  {{0x00,0x22,0x6B}, "Cisco"},
+    /* Amazon (Echo, Fire) */
+    {{0xFC,0x65,0xDE}, "Amazon"},  {{0x74,0xC2,0x46}, "Amazon"},
+    {{0xA0,0x02,0xDC}, "Amazon"},
+    /* Sonos */
+    {{0x00,0x0E,0x58}, "Sonos"},  {{0x94,0x9F,0x3E}, "Sonos"},
+    /* HP */
+    {{0x00,0x1A,0x4B}, "HP"},  {{0x3C,0xD9,0x2B}, "HP"},
+    /* Ubiquiti */
+    {{0x00,0x27,0x22}, "Ubiquiti"},  {{0x24,0x5A,0x4C}, "Ubiquiti"},
+    {{0xFC,0xEC,0xDA}, "Ubiquiti"},  {{0x78,0x8A,0x20}, "Ubiquiti"},
+    {{0x44,0xD9,0xE7}, "Ubiquiti"},  {{0x18,0xE8,0x29}, "Ubiquiti"},
+    /* ZTE */
+    {{0x00,0x1E,0x73}, "ZTE"},  {{0x58,0x19,0xF8}, "ZTE"},
+};
+
+static const char *oui_lookup(const char *mac) {
+    if (!mac || strlen(mac) < 8) return NULL;
+    unsigned int b0, b1, b2;
+    if (sscanf(mac, "%x:%x:%x", &b0, &b1, &b2) != 3) return NULL;
+    for (size_t i = 0; i < sizeof(oui_table) / sizeof(oui_table[0]); i++) {
+        if (oui_table[i].oui[0] == b0 &&
+            oui_table[i].oui[1] == b1 &&
+            oui_table[i].oui[2] == b2)
+            return oui_table[i].vendor;
+    }
+    return NULL;
+}
+
 static Host g_hosts[MAX_HOSTS];
 static int  g_host_count = 0;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static volatile int g_running = 1;
+static char g_self_ip[16] = {0};
 
 static void sig_handler(int sig) {
     (void)sig;
@@ -154,6 +252,8 @@ static void read_arp_table(void) {
             for (int i = 0; i < g_host_count; i++) {
                 if (strcmp(g_hosts[i].ip, ip) == 0) {
                     snprintf(g_hosts[i].mac, sizeof(g_hosts[i].mac), "%s", mac);
+                    const char *v = oui_lookup(mac);
+                    if (v) snprintf(g_hosts[i].vendor, sizeof(g_hosts[i].vendor), "%s", v);
                     break;
                 }
             }
@@ -250,6 +350,7 @@ static int detect_subnet(const char *iface, char *base_ip, int base_ip_size) {
             if (prefix_len < (size_t)base_ip_size) {
                 memcpy(base_ip, best_ip, prefix_len);
                 base_ip[prefix_len] = '\0';
+                snprintf(g_self_ip, sizeof(g_self_ip), "%s", best_ip);
                 freeifaddrs(ifaddr);
                 printf("[scanner] Detected subnet: %s.0/24 (%s)\n", base_ip, best_iface);
                 return 0;
@@ -284,6 +385,7 @@ static void *scan_worker(void *arg) {
                 memcpy(h->ip, ip, sizeof(h->ip));
                 h->ip[sizeof(h->ip) - 1] = '\0';
                 h->mac[0] = '\0';
+                h->vendor[0] = '\0';
                 h->hostname[0] = '\0';
                 h->alive = 1;
                 h->rtt_ms = rtt;
@@ -316,10 +418,14 @@ static void scan_subnet(const char *base_ip) {
         pthread_join(threads[t], NULL);
     }
 
-    /* Enrich with ARP + DNS */
+    /* Enrich with ARP + DNS + vendor */
     read_arp_table();
     for (int i = 0; i < g_host_count; i++) {
         resolve_hostname(&g_hosts[i]);
+        if (g_hosts[i].mac[0] && !g_hosts[i].vendor[0]) {
+            const char *v = oui_lookup(g_hosts[i].mac);
+            if (v) snprintf(g_hosts[i].vendor, sizeof(g_hosts[i].vendor), "%s", v);
+        }
     }
 }
 
@@ -339,32 +445,56 @@ static int ip_cmp(const void *a, const void *b) {
 static void print_table(void) {
     qsort(g_hosts, g_host_count, sizeof(Host), ip_cmp);
 
-    printf("\n%-16s %-18s %8s  %s\n", "IP", "MAC", "RTT(ms)", "Hostname");
-    printf("%-16s %-18s %8s  %s\n", "──────────────", "─────────────────", "───────", "────────────────");
+    printf("\n%-16s %-18s %-16s %8s  %s\n", "IP", "MAC", "Vendor", "RTT(ms)", "Hostname");
+    printf("%-16s %-18s %-16s %8s  %s\n",
+           "──────────────", "─────────────────", "──────────────", "───────", "────────────────");
 
+    int shown = 0;
     for (int i = 0; i < g_host_count; i++) {
         Host *h = &g_hosts[i];
-        printf("%-16s %-18s %7.1f  %s\n",
+        int is_self = (g_self_ip[0] && strcmp(h->ip, g_self_ip) == 0);
+
+        /* Only show hosts with a real MAC, or the scanner itself */
+        if (!h->mac[0] && !is_self) continue;
+
+        const char *label = "";
+        if (is_self) label = "(this device)";
+        else if (h->hostname[0]) label = h->hostname;
+
+        printf("%-16s %-18s %-16s %7.1f  %s\n",
                h->ip,
-               h->mac[0] ? h->mac : "(unknown)",
+               h->mac[0] ? h->mac : "--",
+               h->vendor[0] ? h->vendor : "",
                h->rtt_ms,
-               h->hostname[0] ? h->hostname : "");
+               label);
+        shown++;
     }
-    printf("\n[scanner] %d hosts found\n", g_host_count);
+    printf("\n[scanner] %d devices found (%d responded to ping)\n", shown, g_host_count);
 }
 
 static void print_json(void) {
     qsort(g_hosts, g_host_count, sizeof(Host), ip_cmp);
 
-    printf("[\n");
+    /* Collect indices of hosts to show */
+    int indices[MAX_HOSTS], shown = 0;
     for (int i = 0; i < g_host_count; i++) {
-        Host *h = &g_hosts[i];
-        printf("  {\"ip\":\"%s\",\"mac\":\"%s\",\"rtt\":%.1f,\"hostname\":\"%s\"}%s\n",
+        int is_self = (g_self_ip[0] && strcmp(g_hosts[i].ip, g_self_ip) == 0);
+        if (g_hosts[i].mac[0] || is_self)
+            indices[shown++] = i;
+    }
+
+    printf("[\n");
+    for (int s = 0; s < shown; s++) {
+        Host *h = &g_hosts[indices[s]];
+        int is_self = (g_self_ip[0] && strcmp(h->ip, g_self_ip) == 0);
+        printf("  {\"ip\":\"%s\",\"mac\":\"%s\",\"vendor\":\"%s\",\"rtt\":%.1f,\"hostname\":\"%s\",\"self\":%s}%s\n",
                h->ip,
                h->mac[0] ? h->mac : "",
+               h->vendor[0] ? h->vendor : "",
                h->rtt_ms,
                h->hostname[0] ? h->hostname : "",
-               i < g_host_count - 1 ? "," : "");
+               is_self ? "true" : "false",
+               s < shown - 1 ? "," : "");
     }
     printf("]\n");
 }
