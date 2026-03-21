@@ -57,7 +57,7 @@
     try {
       const hostname = new URL(url).hostname;
       return AD_SERVER_DOMAINS.some((domain) => hostname.includes(domain));
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -96,7 +96,7 @@
             adContainersHidden++;
           }
         }
-      } catch (e) {
+      } catch {
         // Invalid selector
       }
     }

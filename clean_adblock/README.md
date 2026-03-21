@@ -2,6 +2,8 @@
 
 A Manifest V3 Chrome extension designed to bypass "AdBlock detected" popups and restore website functionality without using any copyrighted source code from existing solutions.
 
+**Merged extensions:** This extension now includes all features from `linkedin_fix` and `x` extensions.
+
 ## Features
 
 ### Core Features
@@ -20,23 +22,34 @@ A Manifest V3 Chrome extension designed to bypass "AdBlock detected" popups and 
 - **Cookie Banner Blocker**: Automatically dismisses GDPR/cookie consent banners on websites.
 - **Social Media Blocker**: Blocks sponsored/promoted content on:
   - Facebook
-  - LinkedIn
-  - X (Twitter)
   - Instagram
-  - YouTube
   - Reddit
   - Pinterest
 - **YouTube Ad Blocker**: Blocks video ads, banner ads, and overlay ads on YouTube.
 - **Video Stream Ad Blocker**: Intercepts VAST/VPAID ad requests on HTML5 video players.
 - **Twitch Ad Blocker**: Blocks pre-roll, mid-roll, and overlay ads on Twitch.tv.
 
-All features can be individually toggled on/off in the extension popup.
+### LinkedIn Features (merged from linkedin_fix) - **Always Enabled**
+
+- **Direct Profile Access**: Bypasses "Premium Upsell" popups on LinkedIn profile recommendations.
+- **Link Rewriting**: Automatically rewrites poisoned premium links to search results.
+- **Promoted Content Hider**: Removes "Promoted" advertisement cards from the sidebar.
+- **DNR Rules**: Blocks LinkedIn premium survey pages at the network level.
+
+### X (Twitter) Features (merged from x) - **Always Enabled**
+
+- **Following Feed Default**: Automatically hides "For you" tab and switches to "Following" feed.
+- **Classic Twitter Bird**: Restores the classic Twitter bird logo and favicon (replaces X logo).
+- **UI Cleaner**: Hides premium prompts, Grok buttons, "Who to follow", and "Live on X" boxes.
+- **Minimalist Mode**: Hides "What's happening?" placeholder in the compose box.
+
+All features can be individually toggled on/off in the extension popup (except LinkedIn and X features which are always enabled).
 
 ## Installation
 
 1. Open Chrome and navigate to `chrome://extensions`.
 2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** and select the `net/clean_adblock` directory.
+3. Click **Load unpacked** and select the `clean_adblock` directory.
 
 ## Usage
 
@@ -44,6 +57,8 @@ All features can be individually toggled on/off in the extension popup.
 - **Manual Scan**: If a popup isn't hidden automatically, click "Scan Current Page".
 - **Element Picker**: Click "Element Picker" to select an element on the page to hide permanently.
 - **Site Management**: Use the "Whitelist", "Blacklist", and "Block JS" buttons to manage how the extension behaves on the current site.
+- **LinkedIn**: Works automatically on linkedin.com - no configuration needed.
+- **X/Twitter**: Works automatically on x.com/twitter.com - no configuration needed.
 
 ## Technical Details
 

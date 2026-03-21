@@ -183,7 +183,7 @@
         set: () => {},
         configurable: false
       });
-    } catch (e) {
+    } catch {
       /* already defined */
     }
 
@@ -194,7 +194,7 @@
         set: () => {},
         configurable: false
       });
-    } catch (e) {
+    } catch {
       /* already defined */
     }
 
@@ -210,7 +210,7 @@
         set: () => {},
         configurable: false
       });
-    } catch (e) {
+    } catch {
       /* already defined */
     }
   }
@@ -301,7 +301,7 @@
     for (const selector of FORUM_AD_SELECTORS) {
       try {
         document.querySelectorAll(selector).forEach((el) => hideAd(el));
-      } catch (e) {
+      } catch {
         /* invalid selector */
       }
     }
@@ -337,7 +337,7 @@
             if (node.matches && node.matches(selector)) {
               hideAd(node);
             }
-          } catch (e) {
+          } catch {
             /* invalid selector */
           }
         }

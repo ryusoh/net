@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "__MSG_extensionDescription__",
   "permissions": [
     "storage",
@@ -28,6 +28,15 @@
     "*://*.reddit.com/*",
     "*://*.pinterest.com/*"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "linkedin_rules",
+        "enabled": true,
+        "path": "linkedin-rules.json"
+      }
+    ]
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -61,11 +70,23 @@
       "run_at": "document_start"
     },
     {
+      "matches": ["*://*.linkedin.com/*"],
+      "js": ["linkedin-unlocked.js", "linkedin-hide-promoted.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.x.com/*", "*://*.twitter.com/*"],
+      "js": ["x-twitter-bird.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.x.com/*", "*://*.twitter.com/*"],
+      "js": ["x-unlocked.js"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": [
         "*://*.facebook.com/*",
-        "*://*.linkedin.com/*",
-        "*://*.x.com/*",
-        "*://*.twitter.com/*",
         "*://*.instagram.com/*",
         "*://*.reddit.com/*",
         "*://*.pinterest.com/*"

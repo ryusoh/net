@@ -25,7 +25,10 @@ global.chrome = {
     onInstalled: {
       addListener: jest.fn((cb) => cb({ reason: 'install' }))
     },
-    lastError: null
+    lastError: null,
+    onMessage: {
+      addListener: jest.fn()
+    }
   },
   tabs: {
     query: jest.fn(),

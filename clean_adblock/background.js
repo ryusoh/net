@@ -222,11 +222,11 @@ async function extendCookies() {
             sameSite: cookie.sameSite || 'unspecified',
             expirationDate: futureDate
           });
-        } catch (e) {
+        } catch {
           // httpOnly cookies may fail — that's OK
         }
       }
-    } catch (e) {
+    } catch {
       // Domain might have no cookies yet
     }
   }
@@ -290,20 +290,89 @@ function shouldCloseTab(url) {
         return true;
       }
     }
-  } catch (e) {
+  } catch {
     /* Invalid URL */
   }
   return false;
 }
 
+/**
+ * LinkedIn: Premium Upsell Redirect (Race-Condition-Proof)
+ * ---------------------------------------------------------
+ * Content script sends profile URL via chrome.runtime.sendMessage on hover.
+ * Stored IN MEMORY here (instant, no async chrome.storage latency).
+ * When premium navigation detected, redirect immediately using in-memory URL.
+ */
+
+let linkedinPendingProfile = null;
+
+// Receive profile URL from content script — instant, synchronous delivery
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'LINKEDIN_PROFILE_HOVER' && msg.url) {
+    linkedinPendingProfile = msg.url;
+    console.log('[LinkedIn Fix] BG received profile URL:', msg.url);
+  }
+});
+
+function isLinkedInPremium(url) {
+  if (!url) {
+    return false;
+  }
+  return url.includes('linkedin.com/premium');
+}
+
+function redirectFromPremium(tabId) {
+  const dest = linkedinPendingProfile;
+  if (dest) {
+    console.log('[LinkedIn Fix] Redirect (memory): premium ->', dest);
+    chrome.tabs.update(tabId, { url: dest });
+    linkedinPendingProfile = null;
+    return;
+  }
+  // Fallback: session storage survives service worker restart
+  chrome.storage.session.get(['linkedinPendingProfile'], (result) => {
+    if (chrome.runtime.lastError) {
+      return;
+    }
+    const url = result.linkedinPendingProfile;
+    if (url) {
+      console.log('[LinkedIn Fix] Redirect (session): premium ->', url);
+      chrome.tabs.update(tabId, { url });
+      chrome.storage.session.remove('linkedinPendingProfile');
+    } else {
+      console.log('[LinkedIn Fix] No profile URL stored, going to feed');
+      chrome.tabs.update(tabId, { url: 'https://www.linkedin.com/feed/' });
+    }
+  });
+}
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if ((changeInfo.url || tab.url) && shouldCloseTab(changeInfo.url || tab.url)) {
+  const url = changeInfo.url || tab.url;
+
+  if (url && shouldCloseTab(url)) {
     chrome.tabs.remove(tabId).catch(() => {});
+    return;
+  }
+
+  if (changeInfo.url && isLinkedInPremium(changeInfo.url)) {
+    console.log(
+      '[LinkedIn Fix] Premium URL detected:',
+      changeInfo.url,
+      'in-memory:',
+      linkedinPendingProfile
+    );
+    redirectFromPremium(tabId);
   }
 });
 
 chrome.tabs.onCreated.addListener((tab) => {
-  if (tab.pendingUrl && shouldCloseTab(tab.pendingUrl)) {
+  const url = tab.pendingUrl || tab.url;
+  if (url && shouldCloseTab(url)) {
     chrome.tabs.remove(tab.id).catch(() => {});
+    return;
+  }
+  if (url && isLinkedInPremium(url)) {
+    console.log('[LinkedIn Fix] Premium URL in new tab:', url);
+    redirectFromPremium(tab.id);
   }
 });

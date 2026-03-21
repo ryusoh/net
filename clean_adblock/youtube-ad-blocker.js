@@ -65,7 +65,7 @@
         if (element.matches(selector) || element.closest(selector)) {
           return true;
         }
-      } catch (e) {
+      } catch {
         // Invalid selector
       }
     }
@@ -128,7 +128,7 @@
         for (const el of elements) {
           hideAd(el);
         }
-      } catch (e) {
+      } catch {
         // Invalid selector
       }
     }

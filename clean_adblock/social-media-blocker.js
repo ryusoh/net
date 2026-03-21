@@ -22,27 +22,6 @@
       ],
       textPatterns: [/sponsored/i, /promoted/i, /ad\s*$/i, /· Sponsored/i]
     },
-    linkedin: {
-      domains: ['linkedin.com', 'www.linkedin.com'],
-      selectors: [
-        '.promoted',
-        '[class*="ad-banner"]',
-        '[data-ad-logged-in]',
-        'div.ember-view:has-text("Promoted")'
-      ],
-      textPatterns: [/promoted/i, /sponsor/i]
-    },
-    x: {
-      domains: ['twitter.com', 'x.com', 'mobile.twitter.com'],
-      selectors: [
-        '[data-testid="placementTracking"]',
-        '[class*="promoted"]',
-        'article:has-text("Promoted")',
-        'article:has-text("Ad")',
-        '[data-testid="appBarFollowPrompt"]'
-      ],
-      textPatterns: [/promoted/i, /\bAd\b/i]
-    },
     instagram: {
       domains: ['instagram.com', 'www.instagram.com'],
       selectors: [
@@ -51,18 +30,6 @@
         '[data-testid="social_context"]'
       ],
       textPatterns: [/sponsored/i]
-    },
-    youtube: {
-      domains: ['youtube.com', 'www.youtube.com', 'm.youtube.com'],
-      selectors: [
-        'ytd-promoted-video-renderer',
-        'ytd-ad-slot-renderer',
-        'ytd-compact-promoted-video-renderer',
-        '.ytd-promoted-sparkles-web-renderer',
-        '#player-ads',
-        '#masthead-ad'
-      ],
-      textPatterns: []
     },
     reddit: {
       domains: ['reddit.com', 'www.reddit.com', 'old.reddit.com', 'new.reddit.com'],
@@ -118,7 +85,7 @@
             processedElements.add(el);
           }
         }
-      } catch (e) {
+      } catch {
         // Invalid selector
       }
     }

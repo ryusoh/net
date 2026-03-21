@@ -252,7 +252,7 @@
         chrome?.storage?.sync &&
         chrome?.storage?.local
       );
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -336,7 +336,7 @@
                       document.querySelectorAll(selector).forEach((el) => {
                         el.style.setProperty('display', 'none', 'important');
                       });
-                    } catch (e) {
+                    } catch {
                       log('Invalid custom selector:', selector);
                     }
                   });

@@ -91,7 +91,7 @@
             return el;
           }
         }
-      } catch (e) {
+      } catch {
         // Invalid selector, skip
       }
     }
@@ -125,7 +125,7 @@
             return btn;
           }
         }
-      } catch (e) {
+      } catch {
         // Invalid selector, skip
       }
     }
