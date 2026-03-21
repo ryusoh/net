@@ -33,7 +33,7 @@ build() {
         -v "$CCACHE_PATH":/root/.ccache \
         -e CCACHE_DIR=/root/.ccache \
         --tmpfs /tmp:exec,mode=777 \
-        ebpf-builder /bin/bash -c "make -C vps_kernel_proxy all -j$(nproc) && make -C nas_proxy all -j$(nproc)"
+        ebpf-builder /bin/bash -c "make -C vps_kernel_proxy all -j$(nproc) && make -C nas_proxy all -j$(nproc) && make -C nas_tools all -j$(nproc)"
 }
 
 scrub() {
