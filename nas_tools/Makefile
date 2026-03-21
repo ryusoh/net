@@ -2,7 +2,7 @@ CC      ?= gcc
 CFLAGS  ?= -O3 -Wall -Wextra
 LDFLAGS  = -lpthread
 
-TARGETS = lan_scanner wol netmon
+TARGETS = lan_scanner wol netmon speedtest
 
 all: $(TARGETS)
 
@@ -14,6 +14,9 @@ wol: wol.c
 
 netmon: netmon.c
 	$(CC) $(CFLAGS) -o $@ $< -lm
+
+speedtest: speedtest.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 clean:
 	rm -f $(TARGETS)
