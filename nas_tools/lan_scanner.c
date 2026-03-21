@@ -227,7 +227,7 @@ static void *scan_worker(void *arg) {
     ScanRange *r = (ScanRange *)arg;
 
     for (int i = r->start; i < r->end; i++) {
-        char ip[16];
+        char ip[32];
         snprintf(ip, sizeof(ip), "%s.%d", r->base_ip, i);
 
         double rtt = ping_host(ip);
