@@ -1,3 +1,4 @@
+/* global AbortController, FileReader */
 /**
  * Tianditu Proxy Accelerator - V3.1
  * Uses NAS proxy bridge (HTTP CONNECT -> SOCKS5) for best performance.
@@ -181,6 +182,51 @@ function clearTiandituData() {
   });
   console.log('[Tianditu] Cleared tianditu cookies');
 }
+
+/**
+ * Tile Cache Bridge
+ * Content script sends tile URLs here. We fetch from NAS cache (no CORS/mixed content).
+ * Return data URL on hit, or {hit: false} on miss.
+ */
+const NAS_CACHE = `http://${NAS_IP}:8082`;
+const CACHE_TIMEOUT = 5000;
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === 'TILE_CACHE_FETCH' && msg.url) {
+    const cacheUrl = `${NAS_CACHE}/?url=${encodeURIComponent(msg.url)}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CACHE_TIMEOUT);
+
+    fetch(cacheUrl, { signal: controller.signal })
+      .then((resp) => {
+        clearTimeout(timeout);
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+        return resp.blob();
+      })
+      .then((blob) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          console.log('[TileCache] HIT:', msg.url.substring(0, 80));
+          sendResponse({
+            hit: true,
+            data: reader.result,
+            contentType: blob.type || 'application/octet-stream'
+          });
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(() => {
+        clearTimeout(timeout);
+        console.log('[TileCache] MISS:', msg.url.substring(0, 80));
+        sendResponse({ hit: false });
+      });
+
+    return true; /* keep message channel open for async response */
+  }
+});
 
 chrome.runtime.onInstalled.addListener(() => {
   clearTiandituData();

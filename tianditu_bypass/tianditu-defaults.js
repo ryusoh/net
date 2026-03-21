@@ -37,7 +37,9 @@
   }
 
   function trySelect() {
-    if (selectImagery()) {return;}
+    if (selectImagery()) {
+      return;
+    }
     attempts++;
     if (attempts < MAX_ATTEMPTS) {
       setTimeout(trySelect, 500);

@@ -42,8 +42,19 @@
   "content_scripts": [
     {
       "matches": ["*://*.tianditu.gov.cn/*", "*://*.tianditu.cn/*"],
+      "js": ["tile-cache-interceptor.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.tianditu.gov.cn/*", "*://*.tianditu.cn/*"],
       "js": ["tianditu-defaults.js"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["tile-cache-page.js"],
+      "matches": ["*://*.tianditu.gov.cn/*", "*://*.tianditu.cn/*"]
     }
   ],
   "action": {
