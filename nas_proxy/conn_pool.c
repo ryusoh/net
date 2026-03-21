@@ -309,8 +309,7 @@ static int pool_acquire(const char *dest_host, int dest_port) {
                 g_pool[slot].state = POOL_BUSY;
                 g_pool[slot].created = time(NULL);
                 g_pool[slot].dest_port = dest_port;
-                strncpy(g_pool[slot].dest_host, dest_host, sizeof(g_pool[slot].dest_host) - 1);
-                g_pool[slot].dest_host[sizeof(g_pool[slot].dest_host) - 1] = '\0';
+                memcpy(g_pool[slot].dest_host, dest_host, sizeof(g_pool[slot].dest_host));
             }
             pthread_mutex_unlock(&g_pool_lock);
             return fd;
@@ -418,9 +417,14 @@ static void *handle_client(void *arg) {
         return NULL;
     }
 
-    char *hostport = reqbuf + 8;
-    char *space = strchr(hostport, ' ');
-    if (space) *space = '\0';
+    char hostport[256] = {0};
+    {
+        char *hp_start = reqbuf + 8;
+        char *space = strchr(hp_start, ' ');
+        size_t hp_len = space ? (size_t)(space - hp_start) : strlen(hp_start);
+        if (hp_len >= sizeof(hostport)) hp_len = sizeof(hostport) - 1;
+        memcpy(hostport, hp_start, hp_len);
+    }
 
     char dest_host[256] = {0};
     int dest_port = 443;
@@ -428,10 +432,8 @@ static void *handle_client(void *arg) {
     if (colon) {
         *colon = '\0';
         dest_port = atoi(colon + 1);
-        snprintf(dest_host, sizeof(dest_host), "%s", hostport);
-    } else {
-        snprintf(dest_host, sizeof(dest_host), "%s", hostport);
     }
+    memcpy(dest_host, hostport, sizeof(dest_host));
 
     /* Acquire a pooled SOCKS5 connection */
     int remote_fd = pool_acquire(dest_host, dest_port);
