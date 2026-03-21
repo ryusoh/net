@@ -2,6 +2,13 @@
 
 # tm-repair: Forcefully unlock and repair the MacBook Air Time Machine backup.
 # Run this on your Mac.
+# Usage: tm-repair          -- full repair (attach + fsck)
+#        tm-repair --quick   -- just reset VerificationState (fast, no fsck)
+
+QUICK=0
+if [ "$1" = "--quick" ] || [ "$1" = "-q" ]; then
+    QUICK=1
+fi
 
 # 0. Force Cleanup of stuck processes
 echo "🧹 Cleaning up stuck Mac processes..."
@@ -55,7 +62,12 @@ if [ -f "$PLIST" ]; then
     echo "✅ VerificationState reset to 0."
 fi
 
-# 6. Attach and Repair (Live Output)
+# 6. Attach and Repair (Live Output) — skipped in quick mode
+if [ "$QUICK" -eq 1 ]; then
+    echo "🎉 Quick fix done! VerificationState reset. Try running Time Machine now."
+    exit 0
+fi
+
 echo "🔌 Attaching image (Live Output)..."
 echo "---------------------------------------------------"
 TMP_ATTACH="/tmp/tm_attach_log"
