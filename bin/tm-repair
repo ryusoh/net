@@ -2,73 +2,76 @@
 
 # tm-repair: Forcefully unlock and repair the MacBook Air Time Machine backup.
 # Run this on your Mac.
-# Usage: tm-repair          -- full repair (attach + fsck)
-#        tm-repair --quick   -- just reset VerificationState (fast, no fsck)
+# Usage: tm-repair          -- full repair (unmount, remount, attach, fsck)
+#        tm-repair --quick   -- just reset VerificationState (instant, no fsck)
 
 QUICK=0
 if [ "$1" = "--quick" ] || [ "$1" = "-q" ]; then
     QUICK=1
 fi
 
+BUNDLE="/Volumes/MacBook Air Time Machine/SSBN.sparsebundle"
+PLIST="$BUNDLE/com.apple.TimeMachine.MachineID.plist"
+
+# Quick mode: skip everything slow, just reset the plist directly
+if [ "$QUICK" -eq 1 ]; then
+    if [ ! -f "$PLIST" ]; then
+        echo "Volume not mounted. Run tm-repair (without --quick) to remount."
+        exit 1
+    fi
+    chflags nouchg "$BUNDLE" "$PLIST" 2>/dev/null
+    plutil -replace VerificationState -integer 0 "$PLIST"
+    echo "VerificationState reset. Try running Time Machine now."
+    exit 0
+fi
+
+# --- Full repair mode below ---
+
 # 0. Force Cleanup of stuck processes
-echo "🧹 Cleaning up stuck Mac processes..."
+echo "Cleaning up stuck Mac processes..."
 sudo killall -9 hdiutil diskimagesiod chflags mds mds_stores 2>/dev/null
 
 # 1. Force Unmount of deadlocked shares
-echo "🔌 Forcefully unmounting Time Machine volumes to clear locks..."
-for vol in "/Volumes/MacBook Air Time Machine" "/Volumes/Mac Time Machine" "/Volumes/SSBNのバックアップ"*; do
+echo "Forcefully unmounting Time Machine volumes to clear locks..."
+for vol in "/Volumes/MacBook Air Time Machine" "/Volumes/Mac Time Machine" "/Volumes/SSBNのバックアップ"*; do
     if [ -d "$vol" ]; then
         echo "   -> Unmounting $vol"
         sudo umount -f "$vol" 2>/dev/null || diskutil unmount force "$vol" 2>/dev/null
     fi
 done
 
-echo "✅ Mac-side locks cleared."
+echo "Mac-side locks cleared."
 
 # 2. Re-mount the NAS Share
-# Based on your tmutil destinationinfo
 SMB_URL="smb://zhuangliulz@SnapHub._smb._tcp.local/MacBook%20Air%20Time%20Machine"
-echo "🌐 Attempting to re-mount: $SMB_URL"
+echo "Attempting to re-mount: $SMB_URL"
 open "$SMB_URL"
 
-echo "⏳ Waiting for volume to mount (please click 'Connect' if prompted on your Mac)..."
-# Wait up to 30 seconds for the mount to appear
+echo "Waiting for volume to mount (please click 'Connect' if prompted on your Mac)..."
 for i in {1..30}; do
     if [ -d "/Volumes/MacBook Air Time Machine" ]; then
-        echo "✅ Volume mounted!"
+        echo "Volume mounted!"
         break
     fi
     sleep 1
     if [ $i -eq 30 ]; then
-        echo "❌ Volume failed to mount. Please ensure you are connected to the network and try again."
+        echo "Volume failed to mount. Please ensure you are connected to the network and try again."
         exit 1
     fi
 done
 
-# 3. Locate Bundle
-BUNDLE="/Volumes/MacBook Air Time Machine/SSBN.sparsebundle"
-echo "✅ Found backup: $BUNDLE"
+# 3. Quick Unlock + Reset VerificationState
+echo "Removing immutable flags from main bundle..."
+chflags nouchg "$BUNDLE" "$PLIST" 2>/dev/null
 
-# 4. Quick Unlock
-echo "🔓 Removing immutable flags from main bundle..."
-chflags nouchg "$BUNDLE" 2>/dev/null
-chflags nouchg "$BUNDLE/com.apple.TimeMachine.MachineID.plist" 2>/dev/null
-
-# 5. Reset VerificationState
-PLIST="$BUNDLE/com.apple.TimeMachine.MachineID.plist"
 if [ -f "$PLIST" ]; then
-    echo "📝 Resetting VerificationState in $PLIST..."
+    echo "Resetting VerificationState in $PLIST..."
     plutil -replace VerificationState -integer 0 "$PLIST"
-    echo "✅ VerificationState reset to 0."
+    echo "VerificationState reset to 0."
 fi
 
-# 6. Attach and Repair (Live Output) — skipped in quick mode
-if [ "$QUICK" -eq 1 ]; then
-    echo "🎉 Quick fix done! VerificationState reset. Try running Time Machine now."
-    exit 0
-fi
-
-echo "🔌 Attaching image (Live Output)..."
+# 4. Attach and Repair (Live Output)
+echo "Attaching image (Live Output)..."
 echo "---------------------------------------------------"
 TMP_ATTACH="/tmp/tm_attach_log"
 hdiutil attach -nomount -noverify -noautofsck -verbose "$BUNDLE" 2>&1 | tee "$TMP_ATTACH"
@@ -76,15 +79,15 @@ DISK_ID=$(grep -o "/dev/disk[0-9]*" "$TMP_ATTACH" | head -n 1)
 
 if [ -z "$DISK_ID" ]; then
     echo "---------------------------------------------------"
-    echo "❌ Failed to attach image (Error 35 usually means a lock)."
-    echo "💡 Final Tip: Run this ON YOUR NAS (via SSH) to force unlock:"
+    echo "Failed to attach image (Error 35 usually means a lock)."
+    echo "Tip: Run this ON YOUR NAS (via SSH) to force unlock:"
     echo "   sudo synoservicectl --restart samba"
     exit 1
 fi
 
 echo "---------------------------------------------------"
-echo "✅ Attached as $DISK_ID"
-echo "🛠 Starting repair (Live Output)..."
+echo "Attached as $DISK_ID"
+echo "Starting repair (Live Output)..."
 SLICE=$(diskutil list "$DISK_ID" | grep -E "Apple_APFS|Apple_HFS" | awk '{print $NF}' | head -n 1)
 
 if [ -n "$SLICE" ]; then
@@ -96,7 +99,7 @@ if [ -n "$SLICE" ]; then
 fi
 
 echo "---------------------------------------------------"
-echo "⏹ Ejecting $DISK_ID..."
+echo "Ejecting $DISK_ID..."
 hdiutil detach "$DISK_ID"
-echo "🎉 ALL DONE! Try running Time Machine now."
+echo "ALL DONE! Try running Time Machine now."
 rm "$TMP_ATTACH"
