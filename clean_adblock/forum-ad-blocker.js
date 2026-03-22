@@ -16,6 +16,23 @@
 (function () {
   'use strict';
 
+  // Skip sites that have their own dedicated blocker (social-media-blocker.js)
+  const EXCLUDED_DOMAINS = [
+    'reddit.com',
+    'facebook.com',
+    'instagram.com',
+    'pinterest.com',
+    'linkedin.com',
+    'twitter.com',
+    'x.com',
+    'youtube.com',
+    'twitch.tv'
+  ];
+  const host = window.location.hostname;
+  if (EXCLUDED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) {
+    return;
+  }
+
   // --- Phase 1: Early CSS injection (runs at document_start) ---
   // Hide ad elements BEFORE they render to prevent layout shift / flash
 

@@ -140,7 +140,10 @@
   // --- Layer 2: Click Interception (kill event on entire card) ---
 
   function handleIntercept(e) {
-    const target = e.target instanceof Element ? e.target : e.target.parentElement;
+    let target = e.target;
+    if (!(target instanceof Element)) {
+      target = target.parentElement;
+    }
     if (!target) {
       return;
     }
@@ -179,7 +182,10 @@
   // --- Layer 3: Hover pre-store for background failover ---
 
   function onHover(e) {
-    const target = e.target instanceof Element ? e.target : e.target.parentElement;
+    let target = e.target;
+    if (!(target instanceof Element)) {
+      target = target.parentElement;
+    }
     if (!target) {
       return;
     }

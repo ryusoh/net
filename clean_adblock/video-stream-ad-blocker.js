@@ -10,6 +10,21 @@
 (function () {
   'use strict';
 
+  // Skip sites that have their own dedicated blocker
+  const EXCLUDED_DOMAINS = [
+    'reddit.com',
+    'facebook.com',
+    'instagram.com',
+    'pinterest.com',
+    'linkedin.com',
+    'twitter.com',
+    'x.com'
+  ];
+  const host = window.location.hostname;
+  if (EXCLUDED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) {
+    return;
+  }
+
   // Common video ad server domains
   const AD_SERVER_DOMAINS = [
     'doubleclick.net',

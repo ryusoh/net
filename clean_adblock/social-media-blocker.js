@@ -33,14 +33,8 @@
     },
     reddit: {
       domains: ['reddit.com', 'www.reddit.com', 'old.reddit.com', 'new.reddit.com'],
-      selectors: [
-        '[data-ad-id]',
-        '[data-click-id="ad"]',
-        '[class*="promoted"]',
-        'shreddit-ad',
-        'faceplate-tracker[click-id="ad"]'
-      ],
-      textPatterns: [/promoted/i]
+      selectors: ['shreddit-ad', 'faceplate-tracker[click-id="ad"]'],
+      textPatterns: []
     },
     pinterest: {
       domains: ['pinterest.com', 'www.pinterest.com'],
