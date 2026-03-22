@@ -104,6 +104,16 @@
     div[id*="div-gpt-ad"],
     ins.adsbygoogle,
 
+    /* Admiral anti-adblock popups (uses "buoy" styled-components) */
+    div:has(a[href*="getadmiral"]),
+    div:has(a[href*="admiral.mgr"]),
+    div:has([class*="buoy__sc-"] button),
+
+    /* Google Funding Choices / ad-blocker detection banners (randomized classes) */
+    div:has(> div img[src*="gstatic.com"][src*="warning"]),
+    div[style*="z-index: 2147483568"],
+    div[style*="z-index: 2147483647"],
+
     /* Sticky/floating ads */
     [id*="sticky-ad"],
     [class*="sticky-ad"],
@@ -121,8 +131,11 @@
 
     /* Prevent body scroll lock from ad overlays */
     body.fc-overflow-hidden,
-    html.fc-overflow-hidden {
+    html.fc-overflow-hidden,
+    body[style*="overflow: hidden"],
+    html[style*="overflow: hidden"] {
       overflow: auto !important;
+      overflow-y: auto !important;
       position: static !important;
     }
   `;
@@ -146,7 +159,10 @@
     'googlesyndication.com/pagead',
     'securepubads.g.doubleclick.net',
     'adservice.google.com',
-    'pagead2.googlesyndication.com'
+    'pagead2.googlesyndication.com',
+    'admiral-media.com',
+    'admiral.mgr.consensu.org',
+    'admiralcdn.com'
   ];
 
   // Block script injection via DOM
@@ -267,6 +283,11 @@
     '#onesignal-popover-container',
     '#onesignal-container',
 
+    // Google anti-adblock banners (randomized classes, match by structure)
+    'div:has(img[src*="gstatic.com"][src*="warning"])[style*="position: fixed"]',
+    'div[style*="z-index: 2147483568"]',
+    'div[style*="z-index: 2147483647"]',
+
     // Generic
     '[class*="ad-container"]',
     '[class*="sponsor"]',
@@ -329,6 +350,14 @@
     if (document.body) {
       document.body.classList.remove('fc-overflow-hidden');
       document.documentElement.classList.remove('fc-overflow-hidden');
+
+      [document.body, document.documentElement].forEach((el) => {
+        const style = window.getComputedStyle(el);
+        if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
+          el.style.setProperty('overflow', 'auto', 'important');
+          el.style.setProperty('overflow-y', 'auto', 'important');
+        }
+      });
     }
   }
 

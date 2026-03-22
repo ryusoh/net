@@ -72,7 +72,10 @@ const AD_NETWORK_DOMAINS = [
   'primis.tech',
   'undrads.com',
   'fundingchoicesmessages.google.com',
-  'adservice.google.com'
+  'adservice.google.com',
+  'cdn.admiral-media.com',
+  'v.admiral-media.com',
+  'admiral.mgr.consensu.org'
 ];
 
 async function setupAdNetworkBlocking() {

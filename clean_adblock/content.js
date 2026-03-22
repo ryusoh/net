@@ -91,9 +91,25 @@
     }
 
     let matches = 0;
+    let strongMatch = false;
     KEYWORDS.forEach((kw) => {
       if (text.includes(kw)) {
         matches++;
+        // Two adblock-specific keywords together is a strong signal
+        if (
+          kw === 'adblock' ||
+          kw === 'adblocker' ||
+          kw === 'ad blocker' ||
+          kw === 'ad block' ||
+          kw === 'detected adblock' ||
+          kw === 'werbeblocker' ||
+          kw === 'bloqueur' ||
+          kw === 'bloqueador' ||
+          kw === '广告拦截' ||
+          kw === '広告ブロック'
+        ) {
+          strongMatch = true;
+        }
       }
     });
 
@@ -101,8 +117,11 @@
       return 0;
     }
 
-    // Calculate base score
+    // Calculate base score — strong adblock keywords get extra weight
     let score = matches * 0.2;
+    if (strongMatch && matches >= 2) {
+      score += 0.2;
+    }
 
     // Contextual bonuses
     const style = window.getComputedStyle(el);
@@ -159,7 +178,9 @@
         el.style.setProperty('overflow', 'auto', 'important');
         el.style.setProperty('overflow-y', 'auto', 'important');
       }
-      if (style.position === 'fixed') {
+      // Only reset position:fixed on body if it was likely set by an overlay script
+      // (i.e., body also has overflow:hidden and a negative top offset — classic scroll-lock pattern)
+      if (el === document.body && style.position === 'fixed' && style.overflow === 'hidden') {
         el.style.setProperty('position', 'static', 'important');
       }
     });
@@ -258,6 +279,45 @@
   }
 
   /**
+   * Dismiss Admiral anti-adblock popups.
+   * Admiral uses randomized class names, so we detect by:
+   * 1. Links to getadmiral.com (branding)
+   * 2. "Continue without disabling" dismiss buttons
+   */
+  function dismissAdmiral() {
+    // Admiral URL-encodes their branding links to evade CSS selectors.
+    // Scan all <a> elements and decode their href to detect Admiral.
+    const allLinks = document.querySelectorAll('a[href]');
+    for (const link of allLinks) {
+      let decoded = '';
+      try {
+        decoded = decodeURIComponent(link.getAttribute('href') || '').toLowerCase();
+      } catch {
+        continue;
+      }
+      if (!decoded.includes('admiral')) {continue;}
+
+      log('Admiral link found:', decoded);
+
+      // Walk up to the topmost overlay container
+      let container = link;
+      let best = link;
+      for (let i = 0; i < 15 && container.parentElement; i++) {
+        container = container.parentElement;
+        if (container === document.body || container === document.documentElement) {break;}
+        best = container;
+      }
+
+      if (best !== link) {
+        log('Hiding Admiral overlay container');
+        best.style.setProperty('display', 'none', 'important');
+        restoreScrolling();
+        return;
+      }
+    }
+  }
+
+  /**
    * Main execution loop.
    */
   function run() {
@@ -310,7 +370,41 @@
             }
           });
 
-          // 5. Apply automatic detection
+          // 5. Hide common adblock detection overlays by selector
+          const ADBLOCK_POPUP_SELECTORS = [
+            '[class*="adblock" i]',
+            '[id*="adblock" i]',
+            '[class*="ad-block" i]',
+            '[id*="ad-block" i]',
+            '[class*="adblocker" i]',
+            '[id*="adblocker" i]',
+            '[class*="adblock-modal"]',
+            '[class*="adblock-overlay"]',
+            '[class*="adblock-notice"]',
+            '[class*="adblock-wall"]',
+            '[class*="anti-adblocker"]',
+            '[id*="anti-adblocker"]',
+            '.fc-consent-root',
+            '.fc-dialog-overlay'
+          ];
+
+          for (const sel of ADBLOCK_POPUP_SELECTORS) {
+            try {
+              document.querySelectorAll(sel).forEach((el) => {
+                if (el.offsetParent !== null || window.getComputedStyle(el).display !== 'none') {
+                  log('Hiding adblock popup by selector:', sel);
+                  hideDetector(el);
+                }
+              });
+            } catch {
+              /* invalid selector */
+            }
+          }
+
+          // 5b. Detect Admiral anti-adblock (uses randomized classes, detect by content)
+          dismissAdmiral();
+
+          // 6. Apply automatic text-based detection
           scanDOM(document.body, (el) => {
             if (scoreElement(el) > 0.6) {
               hideDetector(el);
@@ -373,6 +467,7 @@
       }
     });
     if (shouldRun) {
+      dismissAdmiral();
       run();
     }
   });
