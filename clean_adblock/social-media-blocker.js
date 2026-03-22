@@ -11,16 +11,8 @@
   const PLATFORM_CONFIG = {
     facebook: {
       domains: ['facebook.com', 'www.facebook.com', 'm.facebook.com'],
-      selectors: [
-        '[data-ad-preview]',
-        '[class*="sponsored"]',
-        '[class*="promoted"]',
-        'span[dir="auto"]:has-text("Sponsored")',
-        'div[aria-label*="Sponsored"]',
-        '[data-adclick]',
-        '[data-ft*="ad"]'
-      ],
-      textPatterns: [/sponsored/i, /promoted/i, /ad\s*$/i, /· Sponsored/i]
+      selectors: ['[data-ad-preview]', 'div[aria-label="Sponsored"]', '[data-adclick]'],
+      textPatterns: []
     },
     instagram: {
       domains: ['instagram.com', 'www.instagram.com'],

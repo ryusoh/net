@@ -295,7 +295,9 @@
       } catch {
         continue;
       }
-      if (!decoded.includes('admiral')) {continue;}
+      if (!decoded.includes('admiral')) {
+        continue;
+      }
 
       log('Admiral link found:', decoded);
 
@@ -304,7 +306,9 @@
       let best = link;
       for (let i = 0; i < 15 && container.parentElement; i++) {
         container = container.parentElement;
-        if (container === document.body || container === document.documentElement) {break;}
+        if (container === document.body || container === document.documentElement) {
+          break;
+        }
         best = container;
       }
 
