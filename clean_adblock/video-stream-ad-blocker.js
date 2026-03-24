@@ -10,18 +10,28 @@
 (function () {
   'use strict';
 
-  // Skip sites that have their own dedicated blocker
-  const EXCLUDED_DOMAINS = [
-    'reddit.com',
-    'facebook.com',
-    'instagram.com',
-    'pinterest.com',
-    'linkedin.com',
-    'twitter.com',
-    'x.com'
+  // Only run on sites that actually host video content worth intercepting.
+  // Patching fetch/XHR globally breaks many non-video sites (investing.com, etc.)
+  const VIDEO_DOMAINS = [
+    'dailymotion.com',
+    'vimeo.com',
+    'crunchyroll.com',
+    'funimation.com',
+    'peacocktv.com',
+    'paramountplus.com',
+    'pluto.tv',
+    'tubitv.com',
+    'roku.com',
+    'plex.tv',
+    'bilibili.com',
+    'nicovideo.jp',
+    'iqiyi.com',
+    'youku.com'
   ];
   const host = window.location.hostname;
-  if (EXCLUDED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) {
+  // Also run if the page has embedded video players (detected later via MutationObserver)
+  const isVideoSite = VIDEO_DOMAINS.some((d) => host === d || host.endsWith('.' + d));
+  if (!isVideoSite) {
     return;
   }
 

@@ -295,7 +295,14 @@
       } catch {
         continue;
       }
-      if (!decoded.includes('admiral')) {
+      // Only match Admiral anti-adblock service domains, not the word "admiral"
+      // in general (e.g. "vanguard-500-index-admiral" on investing.com)
+      if (
+        !decoded.includes('getadmiral.com') &&
+        !decoded.includes('admiral.mgr') &&
+        !decoded.includes('admiralcdn.com') &&
+        !decoded.includes('admiral-media.com')
+      ) {
         continue;
       }
 

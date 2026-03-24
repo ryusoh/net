@@ -103,8 +103,22 @@
       "run_at": "document_start"
     },
     {
-      "matches": ["<all_urls>"],
-      "exclude_matches": ["*://*.lyeutsaon.com/*"],
+      "matches": [
+        "*://*.dailymotion.com/*",
+        "*://*.vimeo.com/*",
+        "*://*.crunchyroll.com/*",
+        "*://*.funimation.com/*",
+        "*://*.peacocktv.com/*",
+        "*://*.paramountplus.com/*",
+        "*://*.pluto.tv/*",
+        "*://*.tubitv.com/*",
+        "*://*.roku.com/*",
+        "*://*.plex.tv/*",
+        "*://*.bilibili.com/*",
+        "*://*.nicovideo.jp/*",
+        "*://*.iqiyi.com/*",
+        "*://*.youku.com/*"
+      ],
       "js": ["video-stream-ad-blocker.js"],
       "run_at": "document_start"
     },
