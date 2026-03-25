@@ -284,7 +284,26 @@
    * 1. Links to getadmiral.com (branding)
    * 2. "Continue without disabling" dismiss buttons
    */
+  // Major SPAs where scanning all links on every mutation is too expensive
+  const SKIP_ADMIRAL_DOMAINS = [
+    'x.com',
+    'twitter.com',
+    'facebook.com',
+    'instagram.com',
+    'reddit.com',
+    'youtube.com',
+    'linkedin.com',
+    'pinterest.com'
+  ];
+  const currentHost = window.location.hostname;
+  const skipAdmiral = SKIP_ADMIRAL_DOMAINS.some(
+    (d) => currentHost === d || currentHost.endsWith('.' + d)
+  );
+
   function dismissAdmiral() {
+    if (skipAdmiral) {
+      return;
+    }
     // Admiral URL-encodes their branding links to evade CSS selectors.
     // Scan all <a> elements and decode their href to detect Admiral.
     const allLinks = document.querySelectorAll('a[href]');
@@ -479,7 +498,14 @@
     });
     if (shouldRun) {
       dismissAdmiral();
-      run();
+      // Throttle run() to avoid hammering chrome.storage on dynamic SPAs
+      if (!run._throttled) {
+        run._throttled = true;
+        setTimeout(() => {
+          run._throttled = false;
+          run();
+        }, 500);
+      }
     }
   });
 

@@ -140,7 +140,7 @@ describe('X (Twitter) Unlocked', () => {
     const fs = require('fs');
     const path = require('path');
     const content = fs.readFileSync(path.join(__dirname, 'x-unlocked.js'), 'utf8');
-    expect(content).toContain('startNuclearLoop');
+    expect(content).toContain('tryTabSwitch');
     expect(content).toContain('preferredTab');
   });
 

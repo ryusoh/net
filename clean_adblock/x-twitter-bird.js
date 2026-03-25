@@ -103,7 +103,16 @@
     replaceLogos();
   }
 
-  // Run frequently to catch React DOM updates and the initial loading screen
-  setInterval(loop, 50);
+  // Run on DOM changes instead of aggressive polling
   loop();
+  if (document.body) {
+    const observer = new MutationObserver(loop);
+    observer.observe(document.body, { childList: true, subtree: true });
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      loop();
+      const observer = new MutationObserver(loop);
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+  }
 })();

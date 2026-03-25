@@ -11,6 +11,21 @@
 (function () {
   'use strict';
 
+  // Skip complex SPAs where broad selectors cause breakage
+  const EXCLUDED_DOMAINS = [
+    'x.com',
+    'twitter.com',
+    'facebook.com',
+    'instagram.com',
+    'reddit.com',
+    'youtube.com',
+    'linkedin.com'
+  ];
+  const host = window.location.hostname;
+  if (EXCLUDED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) {
+    return;
+  }
+
   // Common cookie banner selectors (cleanroom - based on common patterns)
   const COOKIE_BANNER_SELECTORS = [
     // Generic selectors
