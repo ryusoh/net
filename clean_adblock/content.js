@@ -227,7 +227,7 @@
       return true;
     };
 
-    ['copy', 'cut', 'contextmenu', 'selectstart', 'mousedown', 'mouseup'].forEach((evt) => {
+    ['copy', 'cut', 'contextmenu', 'selectstart'].forEach((evt) => {
       document.documentElement.addEventListener(evt, stopPropagation, { capture: true });
     });
   }
