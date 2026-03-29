@@ -11,18 +11,10 @@
 (function () {
   'use strict';
 
-  // Skip complex SPAs where broad selectors cause breakage
-  const EXCLUDED_DOMAINS = [
-    'x.com',
-    'twitter.com',
-    'facebook.com',
-    'instagram.com',
-    'reddit.com',
-    'youtube.com',
-    'linkedin.com'
-  ];
+  // Sites with dedicated scripts — always skip
+  const HARDCODED_SKIP = ['x.com', 'twitter.com', 'linkedin.com'];
   const host = window.location.hostname;
-  if (EXCLUDED_DOMAINS.some((d) => host === d || host.endsWith('.' + d))) {
+  if (HARDCODED_SKIP.some((d) => host === d || host.endsWith('.' + d))) {
     return;
   }
 
@@ -196,26 +188,44 @@
     }
   }
 
-  // Run immediately
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', blockCookieBanner);
-  } else {
-    blockCookieBanner();
+  function start() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', blockCookieBanner);
+    } else {
+      blockCookieBanner();
+    }
+
+    const target = document.body || document.documentElement;
+    if (target) {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.addedNodes.length > 0) {
+            blockCookieBanner();
+          }
+        }
+      });
+      observer.observe(target, { childList: true, subtree: true });
+    }
   }
 
-  // Watch for dynamically added banners
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.addedNodes.length > 0) {
-        blockCookieBanner();
+  // Check whitelist before running
+  const syncStorage = typeof chrome !== 'undefined' ? chrome?.storage?.sync : null;
+  if (syncStorage) {
+    syncStorage.get(['whitelist', 'features'], (prefs) => {
+      if (chrome?.runtime?.lastError) {
+        return;
       }
-    }
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+      if (prefs?.features?.cookieBannerBlocker === false) {
+        return;
+      }
+      if (prefs?.whitelist && prefs.whitelist.some((s) => host.includes(s))) {
+        return;
+      }
+      start();
+    });
+  } else {
+    start();
+  }
 
   // Export for testing
   if (typeof window !== 'undefined') {
