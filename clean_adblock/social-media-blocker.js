@@ -18,7 +18,6 @@
       domains: ['instagram.com', 'www.instagram.com'],
       selectors: [
         '[class*="sponsored"]',
-        'article:has-text("Sponsored")',
         '[data-testid="social_context"]'
       ],
       textPatterns: [/sponsored/i]
@@ -76,23 +75,35 @@
       }
     }
 
-    // Also check by text patterns
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-      acceptNode: (node) => {
-        if (processedElements.has(node) || !isVisible(node)) {
+    // Also check by text patterns — only match leaf-level elements to avoid
+    // hiding parent containers (textContent includes all descendant text)
+    if (config.textPatterns.length > 0) {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+        acceptNode: (node) => {
+          if (processedElements.has(node) || !isVisible(node)) {
+            return NodeFilter.FILTER_SKIP;
+          }
+          // Only match elements with short direct text (likely labels, not containers)
+          const directText = Array.from(node.childNodes)
+            .filter((n) => n.nodeType === Node.TEXT_NODE)
+            .map((n) => n.textContent.trim())
+            .join(' ');
+          if (directText.length > 0 && directText.length < 200 && matchesPattern({ textContent: directText }, config.textPatterns)) {
+            return NodeFilter.FILTER_ACCEPT;
+          }
           return NodeFilter.FILTER_SKIP;
         }
-        if (matchesPattern(node, config.textPatterns)) {
-          return NodeFilter.FILTER_ACCEPT;
-        }
-        return NodeFilter.FILTER_SKIP;
-      }
-    });
+      });
 
-    let current;
-    while ((current = walker.nextNode())) {
-      results.push(current);
-      processedElements.add(current);
+      let current;
+      while ((current = walker.nextNode())) {
+        // Walk up to the nearest post/article container rather than hiding just the label
+        const post = current.closest('article, [role="article"], [data-testid]') || current;
+        if (!processedElements.has(post)) {
+          results.push(post);
+          processedElements.add(post);
+        }
+      }
     }
 
     return results;

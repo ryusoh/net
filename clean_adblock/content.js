@@ -381,8 +381,11 @@
             return;
           }
 
-          // 2. Force Interaction Restoration (Always On, regardless of mode)
-          restoreInteractions();
+          // 2. Force Interaction Restoration (skip on SPAs where it breaks layout)
+          const SKIP_INTERACTIONS = ['instagram.com', 'facebook.com', 'reddit.com', 'pinterest.com', 'youtube.com', 'x.com', 'twitter.com', 'linkedin.com', 'twitch.tv'];
+          if (!SKIP_INTERACTIONS.some((d) => host === d || host.endsWith('.' + d))) {
+            restoreInteractions();
+          }
 
           // 3. Check Execution Mode
           if (prefs?.mode === 'selective') {
